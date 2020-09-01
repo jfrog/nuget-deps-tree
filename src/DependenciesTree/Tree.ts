@@ -1,16 +1,14 @@
 import { DependencyInt } from '../DependencyInt';
 
 export class DependenciesTree {
+    private _directDependencies: DependenciesTree[] = [];
+
     constructor(
         private _dependency: DependencyInt,
         private _id: string,
         allDependencies: Map<string, DependencyInt>,
-        childrenMap: Map<string, string[]>,
-        private _directDependencies?: DependenciesTree[]
+        childrenMap: Map<string, string[]>
     ) {
-        if (!this.directDependencies) {
-            this.directDependencies = [];
-        }
         this.addChildren(allDependencies, childrenMap);
     }
 
@@ -22,11 +20,11 @@ export class DependenciesTree {
         this._dependency = value;
     }
 
-    public get directDependencies(): DependenciesTree[] | undefined {
+    public get directDependencies(): DependenciesTree[] {
         return this._directDependencies;
     }
 
-    public set directDependencies(value: DependenciesTree[] | undefined) {
+    public set directDependencies(value: DependenciesTree[]) {
         this._directDependencies = value;
     }
 
@@ -38,8 +36,12 @@ export class DependenciesTree {
         this._id = value;
     }
 
-    // Add children nodes for a dependency.
-    public addChildren(allDependencies: Map<string, DependencyInt>, children: Map<string, string[]>) {
+    /**
+     * Add children nodes for a dependency.
+     * @param allDependencies - All dependencies, direct and transitive.
+     * @param children - All dependencies pointing to their children.
+     */
+    private addChildren(allDependencies: Map<string, DependencyInt>, children: Map<string, string[]>) {
         const childArray: string[] | undefined = children.get(this._id);
         if (!childArray) {
             return;
