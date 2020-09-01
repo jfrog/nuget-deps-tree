@@ -30,7 +30,6 @@
         "fast-xml-parser": "^3.17.4",
         "fs-extra": "^9.0.1",
         "log4js": "^6.3.0",
-        "typedjson": "^1.6.0-rc2",
         "walkdir": "^0.4.1",
         "which": "^2.0.2"
     },
