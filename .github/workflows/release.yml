@@ -17,7 +17,7 @@ jobs:
             - name: Install
               run: npm i
             - name: Update version
-              run: echo ${{ github.ref }} | cut -c 11- | xargs npm version --no-git-tag-version
+              run: echo ${{ github.ref }} | cut -c 11- | xargs npm version --no-git-tag-version --allow-same-version
             - name: Push changes
               uses: ad-m/github-push-action@master
               with:
