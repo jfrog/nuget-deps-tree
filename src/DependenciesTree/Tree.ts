@@ -36,7 +36,11 @@ export class DependenciesTree {
         this._id = value;
     }
 
-    // Add children nodes for a dependency.
+    /**
+     * Add children nodes for a dependency.
+     * @param allDependencies - All dependencies, direct and transitive.
+     * @param children - All dependencies pointing to their children.
+     */
     private addChildren(allDependencies: Map<string, DependencyInt>, children: Map<string, string[]>) {
         const childArray: string[] | undefined = children.get(this._id);
         if (!childArray) {
