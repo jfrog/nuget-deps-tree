@@ -1,7 +1,7 @@
 {
     "name": "nuget-deps-tree",
     "version": "0.1.0",
-    "description": "Nuget Deps Tree is a javascript library, which builds prerestored NuGet or dotnet projects.",
+    "description": "NuGet dependencies trees generator",
     "license": "Apache-2.0",
     "repository": {
         "type": "git",
