@@ -3,6 +3,7 @@ import { absentNupkgWarnMsg } from '../DependenciesTree/Utils';
 import * as pathUtils from 'path';
 import * as fse from 'fs-extra';
 import * as log from 'log4js';
+import { CommonUtils } from '../CommonUtils';
 
 const logger = log.getLogger();
 
@@ -20,7 +21,7 @@ export class AssetsUtils {
 
     public static getAllDependencies(assets: any): Map<string, Dependency> {
         const dependencies: Map<string, Dependency> = new Map();
-        const packagesPath: string = assets.project.restore.packagesPath;
+        const packagesPath: string = CommonUtils.fixSeparatorsToMatchOs(assets.project.restore.packagesPath);
         const libraries = assets.libraries;
 
         for (const dependencyId in libraries) {

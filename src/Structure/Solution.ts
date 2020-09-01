@@ -135,7 +135,7 @@ export class Solution {
         }
     }
 
-    public parseProject(projectLine: string, dir: string): ParsedProject {
+    public parseProject(projectLine: string, solutionDir: string): ParsedProject {
         const parsedLine: string[] = projectLine.split('=');
         if (parsedLine.length <= 1) {
             throw new Error('Unexpected project line format: ' + projectLine);
@@ -151,13 +151,8 @@ export class Solution {
         // the solution root path and the relative path to csproj file might used different path separators.
         // We want to make sure we will get a valid path after we join both parts,
         // so we will replace the csproj separators.
-        const isWindows: boolean = CommonUtils.isWindows();
-        if (isWindows) {
-            projectInfo[1] = projectInfo[1].replace(/\//g, '\\');
-        } else {
-            projectInfo[1] = projectInfo[1].replace(/\\/g, '/');
-        }
-        const csprojPath: string = pathUtils.join(dir, this.removeQuotes(projectInfo[1]));
+        projectInfo[1] = CommonUtils.fixSeparatorsToMatchOs(projectInfo[1]);
+        const csprojPath: string = pathUtils.join(solutionDir, this.removeQuotes(projectInfo[1]));
         return new ParsedProject(projectName, csprojPath);
     }
 

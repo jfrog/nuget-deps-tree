@@ -30,4 +30,11 @@ export class CommonUtils {
     public static lookPath(cmd: string): string {
         return which.sync(cmd, { nothrow: true }) || '';
     }
+
+    public static fixSeparatorsToMatchOs(path: string) {
+        if (CommonUtils.isWindows()) {
+            return path.replace(/\//g, '\\');
+        }
+        return path.replace(/\\/g, '/');
+    }
 }
