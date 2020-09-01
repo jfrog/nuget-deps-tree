@@ -1,0 +1,24 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd">
+  <metadata>
+    <id>bootstrap</id>
+    <version>4.0.0</version>
+    <title>Bootstrap CSS</title>
+    <authors>The Bootstrap Authors, Twitter Inc.</authors>
+    <owners>bootstrap</owners>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <licenseUrl>https://github.com/twbs/bootstrap/blob/master/LICENSE</licenseUrl>
+    <projectUrl>https://getbootstrap.com/</projectUrl>
+    <iconUrl>https://getbootstrap.com/assets/img/favicons/apple-touch-icon.png</iconUrl>
+    <description>The most popular front-end framework for developing responsive, mobile first projects on the web.</description>
+    <summary>Bootstrap framework in CSS. Includes fonts and JavaScript</summary>
+    <releaseNotes>https://blog.getbootstrap.com/</releaseNotes>
+    <copyright>Copyright 2017-2018</copyright>
+    <language>en-us</language>
+    <tags>css mobile-first responsive front-end framework web</tags>
+    <dependencies>
+      <dependency id="jQuery" version="[3.0.0, 4.0.0)" />
+      <dependency id="popper.js" version="[1.12.9, 2.0.0)" />
+    </dependencies>
+  </metadata>
+</package>

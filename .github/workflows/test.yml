@@ -1,0 +1,23 @@
+name: Build
+
+on: push
+
+jobs:
+    test:
+        runs-on: ${{ matrix.os }}
+        strategy:
+            fail-fast: false
+            matrix:
+                os: [ubuntu-latest, windows-latest, macOS-latest]
+        steps:
+            - uses: actions/checkout@v1
+            - name: Setup NodeJS
+              uses: actions/setup-node@v1
+              with:
+                  node-version: '10.x'
+            - name: Install
+              run: npm i
+            - name: Lint
+              run: npm run lint
+            - name: Tests
+              run: npm t

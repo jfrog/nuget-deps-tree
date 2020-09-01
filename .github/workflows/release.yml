@@ -1,0 +1,28 @@
+name: Release
+
+on:
+    release:
+        types: published
+jobs:
+    release:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v1
+            - name: Setup NodeJS
+              uses: actions/setup-node@v1
+              with:
+                  node-version: '10.x'
+                  registry-url: 'https://registry.npmjs.org'
+                  scope: '@jfrog'
+            - name: Install
+              run: npm i
+            - name: Update version
+              run: echo ${{ github.ref }} | cut -c 11- | xargs npm version --no-git-tag-version
+            - name: Push changes
+              uses: ad-m/github-push-action@master
+              with:
+                  github_token: ${{ secrets.GITHUB_TOKEN }}
+            - name: Publish
+              run: npm publish --access public
+              env:
+                  NODE_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}

@@ -1,0 +1,61 @@
+{
+    "name": "nuget-deps-tree",
+    "version": "0.1.0",
+    "description": "Nuget Deps Tree is a javascript library, which builds prerestored NuGet or dotnet projects.",
+    "license": "Apache-2.0",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/RobiNino/nuget-deps-tree"
+    },
+    "bugs": {
+        "url": "https://github.com/RobiNino/nuget-deps-tree/issues"
+    },
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "scripts": {
+        "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\" \"model/**/*.ts\"",
+        "build": "tsc --declaration",
+        "lint": "tslint -p tsconfig.json",
+        "prepare": "npm run build",
+        "preversion": "npm run lint",
+        "watch": "tsc -watch -p ./",
+        "compile": "tsc -p ./",
+        "pretest": "npm run compile",
+        "test": "jest --verbose"
+    },
+    "files": [
+        "dist/**/*"
+    ],
+    "dependencies": {
+        "fast-xml-parser": "^3.17.4",
+        "fs-extra": "^9.0.1",
+        "log4js": "^6.3.0",
+        "typedjson": "^1.6.0-rc2",
+        "walkdir": "^0.4.1",
+        "which": "^2.0.2"
+    },
+    "devDependencies": {
+        "@types/fs-extra": "^8.1.0",
+        "@types/jest": "^25.2.1",
+        "@types/which": "^1.3.2",
+        "jest": "^25.5.0",
+        "prettier": "^2.0.5",
+        "ts-jest": "^25.4.0",
+        "tslint": "^6.1.2",
+        "tslint-config-prettier": "^1.18.0",
+        "typescript": "^3.8.3"
+    },
+    "keywords": [
+        "nuget",
+        "dotnet",
+        "dependencies",
+        "tree",
+        "javascript",
+        "typescript",
+        "nodejs",
+        "devops",
+        "jfrog",
+        "js",
+        "ts"
+    ]
+}

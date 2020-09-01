@@ -1,0 +1,13 @@
+# Dependency
+node_modules
+
+# IDE
+.idea
+
+# Artifacts
+*.map
+*.tgz
+
+# Generated
+dist
+coverage

@@ -1,0 +1,14 @@
+{
+    "compilerOptions": {
+        "module": "commonjs",
+        "target": "es2018",
+        "sourceMap": true,
+        "declaration": true,
+        "outDir": "dist",
+        "experimentalDecorators": true,
+        "esModuleInterop": true,
+        "strict": true,
+        "rootDirs": ["src", "model"]
+    },
+    "exclude": ["node_modules", "dist", "test"]
+}
