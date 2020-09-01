@@ -5,10 +5,10 @@
     "license": "Apache-2.0",
     "repository": {
         "type": "git",
-        "url": "https://github.com/RobiNino/nuget-deps-tree"
+        "url": "https://github.com/jfrog/nuget-deps-tree"
     },
     "bugs": {
-        "url": "https://github.com/RobiNino/nuget-deps-tree/issues"
+        "url": "https://github.com/jfrog/nuget-deps-tree/issues"
     },
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
