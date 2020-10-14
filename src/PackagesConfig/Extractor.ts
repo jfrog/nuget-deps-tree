@@ -1,31 +1,52 @@
-import { Dependency } from '../Structure/Dependency';
 import { CommonUtils } from '../CommonUtils';
-import { Extractor } from '../Extractor';
+import { NugetPackage } from './NugetPackage';
+import { DependencyDetails, Extractor, CaseInsensitiveMap } from '../../model';
 import * as exec from 'child_process';
 import * as fse from 'fs-extra';
 import * as pathUtils from 'path';
-import * as parser from 'fast-xml-parser';
-import { absentNupkgWarnMsg } from '../DependenciesTree/Utils';
+import { absentNupkgWarnMsg } from '../DependencyTree/Utils';
 import * as log from 'log4js';
+import { Dependency } from '../Structure/Dependency';
 
 const packagesFileName: string = 'packages.config';
 const logger = log.getLogger();
 
 export class PackagesExtractor implements Extractor {
-    constructor(private _allDependencies: Map<string, Dependency>, private _childrenMap: Map<string, string[]>) {}
+    constructor(
+        private _allDependencies: CaseInsensitiveMap<DependencyDetails>,
+        private _childrenMap: CaseInsensitiveMap<string[]>
+    ) {}
 
-    public allDependencies(): Map<string, Dependency> {
+    /**
+     * Get map of all the dependencies of the project.
+     * @returns map of lower cased dependencies IDs and their actual details.
+     */
+    public allDependencies(): CaseInsensitiveMap<DependencyDetails> {
         return this._allDependencies;
     }
 
+    /**
+     * Get array of all the root dependencies of the project.
+     * @returns array of the lower cased IDs of all root dependencies
+     */
     public directDependencies(): string[] {
         return this.getDirectDependencies(this._allDependencies, this._childrenMap);
     }
 
-    public childrenMap(): Map<string, string[]> {
+    /**
+     * Get map of the dependencies relations map.
+     * @returns map of lower cased dependencies IDs and an array of their lower cased dependencies IDs
+     */
+    public childrenMap(): CaseInsensitiveMap<string[]> {
         return this._childrenMap;
     }
 
+    /**
+     * Checks if the project's dependencies source is of packages config type.
+     * @param projectName
+     * @param dependenciesSource
+     * @returns true if compatible
+     */
     public static isCompatible(projectName: string, dependenciesSource: string): boolean {
         if (dependenciesSource.endsWith(packagesFileName)) {
             logger.debug('Found', dependenciesSource, 'file for project:', projectName);
@@ -34,11 +55,15 @@ export class PackagesExtractor implements Extractor {
         return false;
     }
 
-    // Create new packages.config extractor.
+    /**
+     * Create new package config extractor.
+     * @param dependenciesSource
+     * @returns packages config extractor
+     */
     public static newExtractor(dependenciesSource: string): Extractor {
         const newPkgExtractor: PackagesExtractor = new PackagesExtractor(
-            new Map<string, Dependency>(),
-            new Map<string, string[]>()
+            new CaseInsensitiveMap<DependencyDetails>(),
+            new CaseInsensitiveMap<string[]>()
         );
         const packagesConfig: any = newPkgExtractor.loadPackagesConfig(dependenciesSource);
         const globalPackagesCache: string = newPkgExtractor.getGlobalPackagesCache();
@@ -46,11 +71,17 @@ export class PackagesExtractor implements Extractor {
         return newPkgExtractor;
     }
 
+    /**
+     * Get direct dependencies using DFS on all dependencies and children map.
+     * @param allDependencies
+     * @param childrenMap
+     * @returns array of the ids' of all root dependencies
+     */
     public getDirectDependencies(
-        allDependencies: Map<string, Dependency>,
-        childrenMap: Map<string, string[]>
+        allDependencies: CaseInsensitiveMap<DependencyDetails>,
+        childrenMap: CaseInsensitiveMap<string[]>
     ): string[] {
-        const helper: Map<string, DfsHelper> = new Map();
+        const helper: CaseInsensitiveMap<DfsHelper> = new CaseInsensitiveMap<DfsHelper>();
         for (const id of allDependencies.keys()) {
             helper.set(id, new DfsHelper(false, false, false));
         }
@@ -59,7 +90,7 @@ export class PackagesExtractor implements Extractor {
             if (helper.get(id)?.visited) {
                 continue;
             }
-            this.searchRootDependencies(helper, id, allDependencies, childrenMap, new Map([[id, true]]));
+            this.searchRootDependencies(helper, id, allDependencies, childrenMap, new CaseInsensitiveMap([[id, true]]));
         }
 
         const rootDependencies: string[] = [];
@@ -72,12 +103,20 @@ export class PackagesExtractor implements Extractor {
         return rootDependencies;
     }
 
+    /**
+     * Search for root dependencies and update maps accordingly.
+     * @param dfsHelper
+     * @param currentId
+     * @param allDependencies
+     * @param childrenMap
+     * @param traversePath
+     */
     public searchRootDependencies(
-        dfsHelper: Map<string, DfsHelper>,
+        dfsHelper: CaseInsensitiveMap<DfsHelper>,
         currentId: string,
-        allDependencies: Map<string, Dependency>,
-        childrenMap: Map<string, string[]>,
-        traversePath: Map<string, boolean>
+        allDependencies: CaseInsensitiveMap<DependencyDetails>,
+        childrenMap: CaseInsensitiveMap<string[]>,
+        traversePath: CaseInsensitiveMap<boolean>
     ) {
         if (dfsHelper.get(currentId)?.visited) {
             return;
@@ -111,7 +150,13 @@ export class PackagesExtractor implements Extractor {
         return;
     }
 
-    public getDfs(dfsHelper: Map<string, DfsHelper>, key: string): DfsHelper {
+    /**
+     * Get dfs helper for requested key.
+     * @param dfsHelper
+     * @param key
+     * @returns dfs helper.
+     */
+    public getDfs(dfsHelper: CaseInsensitiveMap<DfsHelper>, key: string): DfsHelper {
         let dfs: DfsHelper | undefined = dfsHelper.get(key);
         if (!dfs) {
             dfs = new DfsHelper(false, false, false);
@@ -120,28 +165,34 @@ export class PackagesExtractor implements Extractor {
         return dfs;
     }
 
+    /**
+     * Extract all the extractor's needed dependencies map from the packages config file.
+     * @param packagesConfig
+     * @param globalPackagesCache
+     */
     public extract(packagesConfig: any, globalPackagesCache: string) {
-        for (const nuget of packagesConfig.packages[0].package) {
-            const id: string = nuget.id.toLowerCase();
-            const nPackage: NugetPackage = new NugetPackage(id, nuget.version, new Map());
+        const packages: any = CommonUtils.getPropertyOrUndefined(packagesConfig, 'packages[0].package');
+        for (const nuget of packages) {
+            const id: string = nuget.id;
+            let version: string = nuget.version;
 
             // First lets check if the original version exists within the file system:
-            let pack: NugetPackage | undefined = this.createNugetPackage(globalPackagesCache, nuget, nPackage);
+            let pack: NugetPackage | undefined = this.createNugetPackage(globalPackagesCache, id, version);
             if (!pack) {
-                // If doesn't exists lets build the array of alternative versions.
-                const alternativeVersions: string[] = this.createAlternativeVersionForms(nuget.version);
+                // If doesn't exist lets build the array of alternative versions.
+                const alternativeVersions: string[] = this.createAlternativeVersionForms(version);
                 // Now lets do a loop to run over the alternative possibilities.
                 for (let i: number = 0; i > alternativeVersions.length; i++) {
-                    nPackage.version = alternativeVersions[i];
-                    pack = this.createNugetPackage(globalPackagesCache, nuget, nPackage);
+                    version = alternativeVersions[i];
+                    pack = this.createNugetPackage(globalPackagesCache, id, version);
                     if (pack) {
                         break;
                     }
                 }
             }
 
-            if (pack && pack.dependency) {
-                this._allDependencies.set(id, pack.dependency);
+            if (pack) {
+                this._allDependencies.set(id, new Dependency(id, version));
                 this._childrenMap.set(id, Array.from(pack.dependencies.keys()));
             } else {
                 logger.warn(
@@ -155,79 +206,50 @@ export class PackagesExtractor implements Extractor {
         }
     }
 
-    public createNugetPackage(packagesPath: string, nuget: any, nPackage: NugetPackage): NugetPackage | undefined {
-        const nupkgPath: string = pathUtils.join(
-            packagesPath,
-            nPackage.id,
-            nPackage.version,
-            [nPackage.id, nPackage.version, 'nupkg'].join('.')
-        );
-
-        if (!fse.pathExists(nupkgPath)) {
-            return undefined;
-        }
-
-        nPackage.dependency = new Dependency(nuget.id + ':' + nuget.version);
-
+    /**
+     * Creates a nuget package if found in cache in the requested version.
+     * @param packagesPath - Path to global packages cache.
+     * @param packageId - Requested package id.
+     * @param packageVersion - Requested package version.
+     * @returns A nuget package, or undefined if not found in cache.
+     */
+    public createNugetPackage(
+        packagesPath: string,
+        packageId: string,
+        packageVersion: string
+    ): NugetPackage | undefined {
         // Nuspec file that holds the metadata for the package.
         const nuspecPath: string = pathUtils.join(
             packagesPath,
-            nPackage.id,
-            nPackage.version,
-            [nPackage.id, 'nuspec'].join('.')
+            packageId,
+            packageVersion,
+            [packageId, 'nuspec'].join('.')
         );
+        // File does not exists for package with that version.
+        if (!fse.pathExists(nuspecPath)) {
+            return undefined;
+        }
+
         const nuspecContent: string | undefined = CommonUtils.readFileIfExists(nuspecPath);
         if (!nuspecContent) {
             throw new Error('Unable to read file: ' + nuspecPath);
         }
-
-        let nuspec: any;
-        try {
-            nuspec = parser.parse(nuspecContent, { ignoreAttributes: false, attributeNamePrefix: '', arrayMode: true });
-        } catch (error) {
-            logger.warn(
-                "Package: %s couldn't be parsed due to: %s. Skipping the package dependency.",
-                nPackage.id + ':' + nPackage.version,
-                error
-            );
-            return nPackage;
-        }
-
-        // Get metadata dependencies if such exist. Check fields exist before iterating over.
-        const metaDataDep: any = nuspec.package[0].metadata[0].dependencies;
-        if (!metaDataDep) {
-            return nPackage;
-        }
-        const depArray: any = metaDataDep[0].dependency;
-        if (depArray) {
-            for (const dependency of depArray) {
-                nPackage.dependencies.set(dependency.id.toLowerCase(), true);
-            }
-        }
-
-        // Dependencies might be grouped.
-        const groupArray = metaDataDep[0].group;
-        if (groupArray) {
-            for (const group of groupArray) {
-                if (group.dependency) {
-                    for (const dependency of group.dependency) {
-                        nPackage.dependencies.set(dependency.id.toLowerCase(), true);
-                    }
-                }
-            }
-        }
-
-        return nPackage;
+        return new NugetPackage(packageId, packageVersion, nuspecContent);
     }
 
-    // NuGet allows the version will be with missing or unnecessary zeros
-    // This method will return a list of the possible alternative versions
-    // "1.0" --> []string{"1.0.0.0", "1.0.0", "1"}
-    // "1" --> []string{"1.0.0.0", "1.0.0", "1.0"}
-    // "1.2" --> []string{"1.2.0.0", "1.2.0"}
-    // "1.22.33" --> []string{"1.22.33.0"}
-    // "1.22.33.44" --> []string{}
-    // "1.0.2" --> []string{"1.0.2.0"}
+    /**
+     * NuGet allows the version to be with missing or unnecessary zeros.
+     * This method generates an array of the possible alternative versions.
+     * For example:
+     * "1.0" --> []string{"1.0.0.0", "1.0.0", "1"}
+     * "1" --> []string{"1.0.0.0", "1.0.0", "1.0"}
+     * "1.2" --> []string{"1.2.0.0", "1.2.0"}
+     * "1.22.33" --> []string{"1.22.33.0"}
+     * "1.22.33.44" --> []string{}
+     * "1.0.2" --> []string{"1.0.2.0"}
+     * @param originalVersion - version listed in the packages config file.
+     * @returns array of possible alternative versions.
+     */
     public createAlternativeVersionForms(originalVersion: string): string[] {
         const versionsSlice: string[] = originalVersion.split('.');
 
@@ -249,14 +271,23 @@ export class PackagesExtractor implements Extractor {
         return alternativeVersions;
     }
 
+    /**
+     * Load packages config data, by reading the xml file and parsing.
+     * @param dependenciesSource.
+     * @returns packages config object.
+     */
     public loadPackagesConfig(dependenciesSource: string): any {
         const content: string | undefined = CommonUtils.readFileIfExists(dependenciesSource);
         if (!content) {
             throw new Error('Unable to read file: ' + dependenciesSource);
         }
-        return parser.parse(content, { ignoreAttributes: false, attributeNamePrefix: '', arrayMode: true });
+        return CommonUtils.parseXmlToObject(content);
     }
 
+    /**
+     * Get global packages cache path.
+     * @returns path to cache.
+     */
     public getGlobalPackagesCache(): string {
         const output: string = this.runGlobalPackagesCommand();
         const globalPackagesPath: string = this.removeGlobalPackagesPrefix(output);
@@ -266,10 +297,19 @@ export class PackagesExtractor implements Extractor {
         return globalPackagesPath;
     }
 
+    /**
+     * Removes prefix from global packages command.
+     * @param line - output of the command.
+     * @returns - output after removing prefix.
+     */
     public removeGlobalPackagesPrefix(line: string): string {
         return line.replace(/^global-packages:/, '').trim();
     }
 
+    /**
+     * Run global packages command.
+     * @returns command output.
+     */
     public runGlobalPackagesCommand(): string {
         let cmd: string = this.getExecutablePath();
         cmd += ' locals global-packages -list';
@@ -282,6 +322,9 @@ export class PackagesExtractor implements Extractor {
         return output;
     }
 
+    /**
+     * Get path of executable suitable for running the command, according to the operating system.
+     */
     public getExecutablePath(): string {
         if (CommonUtils.isWindows()) {
             return CommonUtils.lookPath('nuget');
@@ -289,9 +332,11 @@ export class PackagesExtractor implements Extractor {
         return this.getNonWindowsExecutablePath();
     }
 
-    // NuGet can be run on non Windows OS in one of the following ways:
-    //  1. using nuget client
-    //  2. using Mono
+    /**
+     * NuGet can be run on non Windows OS in one of the following ways:
+     * 1. using nuget client
+     * 2. using Mono
+     */
     public getNonWindowsExecutablePath(): string {
         const nugetPath: string = CommonUtils.lookPath('nuget');
         if (nugetPath) {
@@ -327,39 +372,5 @@ class DfsHelper {
     }
     public set visited(value: boolean) {
         this._visited = value;
-    }
-}
-
-class NugetPackage {
-    constructor(
-        private _id: string,
-        private _version: string,
-        private _dependencies: Map<string, boolean>,
-        private _dependency?: Dependency
-    ) {}
-
-    public get dependencies(): Map<string, boolean> {
-        return this._dependencies;
-    }
-    public set dependencies(value: Map<string, boolean>) {
-        this._dependencies = value;
-    }
-    public get dependency(): Dependency | undefined {
-        return this._dependency;
-    }
-    public set dependency(value: Dependency | undefined) {
-        this._dependency = value;
-    }
-    public get version(): string {
-        return this._version;
-    }
-    public set version(value: string) {
-        this._version = value;
-    }
-    public get id(): string {
-        return this._id;
-    }
-    public set id(value: string) {
-        this._id = value;
     }
 }

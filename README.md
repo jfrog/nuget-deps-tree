@@ -1,23 +1,59 @@
-# NuGet Dependencies Tree
+# NuGet Dependency Tree
 
-This npm package reads the NuGet dependencies of a .NET project, and generates a dependencies tree object.
-This package was developed by JFrog, and is used by the [JFrog VS-Code Extension](https://marketplace.visualstudio.com/items?itemName=JFrog.jfrog-vscode-extension), to generate the dependencies tree for projects using NuGet dependencies.
-You may use this package for other purposes and applications as well.
+This npm package reads the NuGet dependencies of a .NET project, and generates a dependency tree.
+This package was developed by JFrog, and is used by the [JFrog VS-Code Extension](https://marketplace.visualstudio.com/items?itemName=JFrog.jfrog-vscode-extension) to generate the dependency tree for projects using NuGet dependencies.
+You may use this package for other purposes and applications as well, either by running via command line or by importing to your project.
 
-## Getting started
-
-Add nuget-deps-tree as a dependency to your package.json file:
-
-```json
-"dependencies": {
-  "nuget-deps-tree": "^0.1.0"
-}
-```
+## Installation
+`npm install nuget-deps-tree`
 
 ## Usage
+### Command Line
+`nuget-deps-tree [path to sln file]`
+
+### Project Dependency
 ```ts
 import { NugetDepsTree } from 'nuget-deps-tree';
-let nugetList = NugetDepsTree.generate(pathToSlnFile);
+let tree = NugetDepsTree.generate(pathToSlnFile);
+```
+
+## Tree Structure
+```json
+{
+  "projects": [
+    {
+      "name": "First.Project",
+      "dependencies": [
+        {
+          "id": "dependency.One",
+          "version": "1.0.0",
+          "dependencies": [
+            {
+              "id": "dependency.Child",
+              "version": "4.0.0",
+              "dependencies": []
+            }
+          ]
+        },
+        {
+          "id": "dependency.Two",
+          "version": "2.0.0",
+          "dependencies": []
+        }
+      ]
+    },
+    {
+      "name": "Second.Project",
+      "dependencies": [
+        {
+          "id": "dependency.Three",
+          "version": "3.0.0",
+          "dependencies": []
+        }
+      ]
+    }
+  ]
+}
 ```
 
 ## Building and Testing the Sources

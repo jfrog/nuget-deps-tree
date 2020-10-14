@@ -7,7 +7,8 @@
         "ordered-imports": false,
         "max-classes-per-file": false,
         "no-floating-promises": true,
-        "forin": false
+        "forin": false,
+        "no-console": false
     },
     "rulesDirectory": [],
     "linterOptions": {
