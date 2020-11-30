@@ -11,8 +11,8 @@ export class AssetsExtractor implements Extractor {
 
     /**
      * Checks if the project's dependencies source is of assets type.
-     * @param projectName
-     * @param dependenciesSource
+     * @param projectName - the project's name.
+     * @param dependenciesSource - path to the project's dependencies source.
      * @returns true if compatible
      */
     public static isCompatible(projectName: string, dependenciesSource: string): boolean {

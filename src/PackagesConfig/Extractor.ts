@@ -182,8 +182,7 @@ export class PackagesExtractor implements Extractor {
                 // If doesn't exist lets build the array of alternative versions.
                 const alternativeVersions: string[] = this.createAlternativeVersionForms(version);
                 // Now lets do a loop to run over the alternative possibilities.
-                for (let i: number = 0; i > alternativeVersions.length; i++) {
-                    version = alternativeVersions[i];
+                for (const version of alternativeVersions) {
                     pack = this.createNugetPackage(globalPackagesCache, id, version);
                     if (pack) {
                         break;

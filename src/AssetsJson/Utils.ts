@@ -113,7 +113,7 @@ export class AssetsUtils {
      * then this is a .NET dependency that shouldn't be included in the dependencies list (it come with the SDK).
      * Those files are located in the NuGetFallbackFolder directory.
      * @param assets - assets json object.
-     * @param nugetPackageName.
+     * @param nugetPackageName - name of the package.
      * @returns true if part of targets.
      */
     public static isPackagePartOfTargetDependencies(assets: any, nugetPackageName: string): boolean {
