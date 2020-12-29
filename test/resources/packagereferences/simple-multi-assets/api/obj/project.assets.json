@@ -65,7 +65,7 @@
     "version": "1.0.0",
     "restore": {
       "projectName": "api",
-      "packagesPath": "test/resources/simple-multi-assets/packagesFolder"
+      "packagesPath": "test/resources/packagereferences/simple-multi-assets/packagesFolder"
     },
     "frameworks": {
       "net45": {

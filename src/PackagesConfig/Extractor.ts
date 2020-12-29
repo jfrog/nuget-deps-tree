@@ -222,7 +222,7 @@ export class PackagesExtractor implements Extractor {
             packagesPath,
             packageId.toLowerCase(),
             packageVersion,
-            [packageId, 'nuspec'].join('.')
+            [packageId.toLowerCase(), 'nuspec'].join('.')
         );
         // File does not exist for package with that version.
         if (!fse.pathExistsSync(nuspecPath)) {
