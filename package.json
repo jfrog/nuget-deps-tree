@@ -21,7 +21,8 @@
         "watch": "tsc -watch -p ./",
         "compile": "tsc -p ./",
         "pretest": "npm run compile",
-        "test": "jest --verbose"
+        "test": "jest --verbose",
+        "postinstall": "npm run compile"
     },
     "bin": {
         "nuget-deps-tree": "dist/bin/command.js"

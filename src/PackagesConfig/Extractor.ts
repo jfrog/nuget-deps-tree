@@ -174,7 +174,7 @@ export class PackagesExtractor implements Extractor {
         const packages: any = CommonUtils.getPropertyOrUndefined(packagesConfig, 'packages[0].package');
         for (const nuget of packages) {
             const id: string = nuget.id;
-            let version: string = nuget.version;
+            const version: string = nuget.version;
 
             // First lets check if the original version exists within the file system:
             let pack: NugetPackage | undefined = this.createNugetPackage(globalPackagesCache, id, version);
@@ -182,8 +182,8 @@ export class PackagesExtractor implements Extractor {
                 // If doesn't exist lets build the array of alternative versions.
                 const alternativeVersions: string[] = this.createAlternativeVersionForms(version);
                 // Now lets do a loop to run over the alternative possibilities.
-                for (const version of alternativeVersions) {
-                    pack = this.createNugetPackage(globalPackagesCache, id, version);
+                for (const v of alternativeVersions) {
+                    pack = this.createNugetPackage(globalPackagesCache, id, v);
                     if (pack) {
                         break;
                     }
