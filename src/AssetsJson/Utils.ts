@@ -28,7 +28,7 @@ export class AssetsUtils {
     /**
      * Get map of all the dependencies of the project.
      * @param assets - object representing the assets json file
-     * @returns map of lower cased dependencies IDs and their acutal details.
+     * @returns map of lower cased dependencies IDs and their actual details.
      */
     public static getAllDependencies(assets: any): CaseInsensitiveMap<DependencyDetails> {
         const dependencies: CaseInsensitiveMap<DependencyDetails> = new CaseInsensitiveMap<DependencyDetails>();
@@ -45,11 +45,13 @@ export class AssetsUtils {
                 continue;
             }
 
-            const libraryPath: string = CommonUtils.fixSeparatorsToMatchOs(
-                CommonUtils.getPropertyStrictly(library, 'path', assetsFileName)
-            );
+            const libraryPath: string = CommonUtils.getPropertyStrictly(library, 'path', assetsFileName);
             const nupkgFileName: string = this.getNupkgFileName(library, libraryPath);
-            const nupkgFilePath: string = pathUtils.join(packagesPath, libraryPath, nupkgFileName);
+            const nupkgFilePath: string = pathUtils.join(
+                packagesPath,
+                CommonUtils.fixSeparatorsToMatchOs(libraryPath),
+                nupkgFileName
+            );
             // A package is a dependency if a nuget package file exists in Nuget cache directory.
             if (!fse.pathExistsSync(nupkgFilePath)) {
                 if (this.isPackagePartOfTargetDependencies(assets, libraryPath)) {

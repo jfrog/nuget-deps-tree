@@ -19,9 +19,9 @@ describe('Assets Utils Tests', () => {
         const assets: any = JSON.parse(assetsContent);
 
         // MyLogger/1.0.0 should appear under 'targets'
-        expect(AssetsUtils.isPackagePartOfTargetDependencies(assets, 'MyLogger/1.0.0')).toBeTruthy();
+        expect(AssetsUtils.isPackagePartOfTargetDependencies(assets, 'mylogger/1.0.0')).toBeTruthy();
 
         // MyLogger/1.0.1 shouldn't appear under 'targets'
-        expect(AssetsUtils.isPackagePartOfTargetDependencies(assets, 'MyLogger/1.0.1')).toBeFalsy();
+        expect(AssetsUtils.isPackagePartOfTargetDependencies(assets, 'mylogger/1.0.1')).toBeFalsy();
     });
 });
