@@ -217,15 +217,15 @@ export class PackagesExtractor implements Extractor {
         packageId: string,
         packageVersion: string
     ): NugetPackage | undefined {
-        // Nuspec file that holds the metadata for the package.
+        // Nuspec file that holds the metadata for the package. Id in path is lower cased.
         const nuspecPath: string = pathUtils.join(
             packagesPath,
-            packageId,
+            packageId.toLowerCase(),
             packageVersion,
             [packageId, 'nuspec'].join('.')
         );
-        // File does not exists for package with that version.
-        if (!fse.pathExists(nuspecPath)) {
+        // File does not exist for package with that version.
+        if (!fse.pathExistsSync(nuspecPath)) {
             return undefined;
         }
 
