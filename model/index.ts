@@ -1,2 +1,3 @@
 export { Extractor } from './Extractor';
-export { DependencyInt } from './DependencyInt';
+export { DependencyDetails } from './DependencyDetails';
+export { CaseInsensitiveMap } from './CaseInsensitiveMap';

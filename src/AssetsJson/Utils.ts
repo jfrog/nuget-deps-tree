@@ -1,38 +1,58 @@
-import { Dependency } from '../Structure/Dependency';
-import { absentNupkgWarnMsg } from '../DependenciesTree/Utils';
+import { absentNupkgWarnMsg } from '../DependencyTree/Utils';
 import * as pathUtils from 'path';
 import * as fse from 'fs-extra';
 import * as log from 'log4js';
 import { CommonUtils } from '../CommonUtils';
+import { assetsFileName } from './Extractor';
+import { DependencyDetails, CaseInsensitiveMap } from '../../model';
+import { Dependency } from '../Structure/Dependency';
 
 const logger = log.getLogger();
 
 export class AssetsUtils {
+    /**
+     * Get array of all the root dependencies of the project.
+     * @returns array of the ids' of all root dependencies
+     */
     public static getDirectDependencies(assets: any): string[] {
         const directDependencies: string[] = [];
-        const frameworks = assets.project.frameworks;
+        const frameworks = CommonUtils.getPropertyOrUndefined(assets, 'project.frameworks');
         for (const framework in frameworks) {
-            for (const dependencyName in frameworks[framework].dependencies) {
-                directDependencies.push(dependencyName.toLowerCase());
+            for (const dependencyId in CommonUtils.getPropertyOrUndefined(frameworks[framework], 'dependencies')) {
+                directDependencies.push(dependencyId);
             }
         }
         return directDependencies;
     }
 
-    public static getAllDependencies(assets: any): Map<string, Dependency> {
-        const dependencies: Map<string, Dependency> = new Map();
-        const packagesPath: string = CommonUtils.fixSeparatorsToMatchOs(assets.project.restore.packagesPath);
-        const libraries = assets.libraries;
+    /**
+     * Get map of all the dependencies of the project.
+     * @param assets - object representing the assets json file
+     * @returns map of lower cased dependencies IDs and their acutal details.
+     */
+    public static getAllDependencies(assets: any): CaseInsensitiveMap<DependencyDetails> {
+        const dependencies: CaseInsensitiveMap<DependencyDetails> = new CaseInsensitiveMap<DependencyDetails>();
+        // In case running on Unix, and the project was built on Windows, or vice versa.
+        const packagesPath: string = CommonUtils.fixSeparatorsToMatchOs(
+            CommonUtils.getPropertyStrictly(assets, 'project.restore.packagesPath', assetsFileName)
+        );
 
-        for (const dependencyId in libraries) {
-            const library = libraries[dependencyId];
-            if (library.type === 'project') {
+        const libraries = CommonUtils.getPropertyOrUndefined(assets, 'libraries');
+        for (const dependency in libraries) {
+            const library = libraries[dependency];
+            const type = CommonUtils.getPropertyStrictly(library, 'type', assetsFileName);
+            if (type === 'project') {
                 continue;
             }
-            const nupkgFileName: string = this.getNupkgFileName(library);
-            const nupkgFilePath: string = pathUtils.join(packagesPath, library.path, nupkgFileName);
+
+            const libraryPath: string = CommonUtils.fixSeparatorsToMatchOs(
+                CommonUtils.getPropertyStrictly(library, 'path', assetsFileName)
+            );
+            const nupkgFileName: string = this.getNupkgFileName(library, libraryPath);
+            const nupkgFilePath: string = pathUtils.join(packagesPath, libraryPath, nupkgFileName);
+            // A package is a dependency if a nuget package file exists in Nuget cache directory.
             if (!fse.pathExistsSync(nupkgFilePath)) {
-                if (this.isPackagePartOfTargetDependencies(assets, library.path)) {
+                if (this.isPackagePartOfTargetDependencies(assets, libraryPath)) {
                     logger.warn(
                         'The file',
                         nupkgFilePath,
@@ -43,48 +63,65 @@ export class AssetsUtils {
                 }
                 throw new Error('The file ' + nupkgFilePath + " doesn't exist in the NuGet cache directory.");
             }
-            const dependencyName: string = this.getDependencyName(dependencyId);
-            dependencies.set(dependencyName, new Dependency(this.getFormattedDependencyId(dependencyId)));
+            const splitDependency: string[] = this.getDependencyIdAndVersion(dependency);
+            dependencies.set(splitDependency[0], new Dependency(splitDependency[0], splitDependency[1]));
         }
         return dependencies;
     }
 
-    public static getChildrenMap(assets: any): Map<string, string[]> {
-        const dependenciesRelations: Map<string, string[]> = new Map();
-        const targets = assets.targets;
+    /**
+     * Get map of the dependencies relations map.
+     * @returns dependencies ids' and an array of their dependencies ids'
+     */
+    public static getChildrenMap(assets: any): CaseInsensitiveMap<string[]> {
+        const dependenciesRelations: CaseInsensitiveMap<string[]> = new CaseInsensitiveMap<string[]>();
+        // If has no target dependencies, loop is skipped.
+        const targets = CommonUtils.getPropertyOrUndefined(assets, 'targets');
         for (const target in targets) {
             const targetDependencies = targets[target];
-            for (const dependencyId in targetDependencies) {
+            for (const dependency in targetDependencies) {
                 const transitive: string[] = [];
-                for (const transitiveName in targetDependencies[dependencyId].dependencies) {
-                    transitive.push(transitiveName.toLowerCase());
+                // If has no dependencies, loop is skipped.
+                for (const transitiveName in CommonUtils.getPropertyOrUndefined(
+                    targetDependencies[dependency],
+                    'dependencies'
+                )) {
+                    transitive.push(transitiveName);
                 }
-                dependenciesRelations.set(this.getDependencyName(dependencyId), transitive);
+                const splitDependency: string[] = this.getDependencyIdAndVersion(dependency);
+                dependenciesRelations.set(splitDependency[0], transitive);
             }
         }
         return dependenciesRelations;
     }
 
-    public static getDependencyName(dependencyId: string): string {
-        return dependencyId.substring(0, dependencyId.indexOf('/')).toLowerCase();
+    /**
+     * Parses a dependency for it's id and version.
+     * @param dependency.
+     * @returns id and version as array.
+     */
+    public static getDependencyIdAndVersion(dependency: string): string[] {
+        const splitDependency: string[] = dependency.split('/');
+        if (splitDependency.length !== 2) {
+            throw Error('Unexpected dependency: ' + dependency + '. Could not parse id and version');
+        }
+        return splitDependency;
     }
 
-    // Dependencies-id in assets is built in form of: <package-name>/<version>.
-    // The Build-info format of dependency id is: <package-name>:<version>.
-    public static getFormattedDependencyId(dependencyAssetId: string): string {
-        return dependencyAssetId.replace('/', ':');
-    }
-
-    // If the package is included in the targets section of the assets.json file,
-    // then this is a .NET dependency that shouldn't be included in the dependencies list
-    // (it come with the SDK).
-    // Those files are located in the following path: C:\Program Files\dotnet\sdk\NuGetFallbackFolder
+    /**
+     * If the package is included in the targets section of the assets.json file,
+     * then this is a .NET dependency that shouldn't be included in the dependencies list (it come with the SDK).
+     * Those files are located in the NuGetFallbackFolder directory.
+     * @param assets - assets json object.
+     * @param nugetPackageName - name of the package.
+     * @returns true if part of targets.
+     */
     public static isPackagePartOfTargetDependencies(assets: any, nugetPackageName: string): boolean {
-        for (const target in assets.targets) {
-            for (const dependencyId in assets.targets[target]) {
-                // The package names in the targets section of the assets.json file are
-                // case insensitive.
-                if (dependencyId.localeCompare(nugetPackageName, undefined, { sensitivity: 'accent' }) === 0) {
+        const targets: any = CommonUtils.getPropertyOrUndefined(assets, 'targets');
+        for (const target in targets) {
+            for (const dependency in targets[target]) {
+                // The package names in the targets section of the assets.json file are case insensitive.
+                if (dependency.localeCompare(nugetPackageName, undefined, { sensitivity: 'accent' }) === 0) {
                     return true;
                 }
             }
@@ -92,12 +129,21 @@ export class AssetsUtils {
         return false;
     }
 
-    public static getNupkgFileName(library: any): string {
-        for (const fileName of library.files) {
-            if (fileName.endsWith('nupkg.sha512')) {
-                return pathUtils.parse(fileName).name;
+    /**
+     * Get the nuget package file of a dependency.
+     * @param library - library object of a dependency in assets json.
+     * @param libraryPath.
+     * @returns file name.
+     */
+    public static getNupkgFileName(library: any, libraryPath: string): string {
+        const files: any | undefined = CommonUtils.getPropertyOrUndefined(library, 'files');
+        if (files) {
+            for (const fileName of files) {
+                if (fileName.endsWith('nupkg.sha512')) {
+                    return pathUtils.parse(fileName).name;
+                }
             }
         }
-        throw new Error('Could not find nupkg file name for: ' + library.path);
+        throw new Error('Could not find nupkg file name for: ' + libraryPath);
     }
 }

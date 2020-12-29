@@ -1,6 +1,6 @@
 import * as path from 'path';
 import { PackagesExtractor } from '../src/PackagesConfig/Extractor';
-import { Dependency } from '../src/Structure/Dependency';
+import { DependencyDetails, CaseInsensitiveMap } from '../model';
 
 describe('Packages Config Tests', () => {
     const resources: string = path.join(__dirname, 'resources');
@@ -9,8 +9,8 @@ describe('Packages Config Tests', () => {
     test('Packages Config Test', () => {
         // Create the packages extractor
         const extractor: PackagesExtractor = new PackagesExtractor(
-            new Map<string, Dependency>(),
-            new Map<string, string[]>()
+            new CaseInsensitiveMap<DependencyDetails>(),
+            new CaseInsensitiveMap<string[]>()
         );
 
         // Read packages.config
@@ -22,13 +22,15 @@ describe('Packages Config Tests', () => {
         extractor.extract(packagesConfig, packagesCache);
 
         // Check dependencies
-        const dependencies: Map<string, Dependency> = extractor.allDependencies();
+        const dependencies: CaseInsensitiveMap<DependencyDetails> = extractor.allDependencies();
         expect(dependencies.size).toBe(2);
-        expect(dependencies.get('bootstrap')?.id).toBe('bootstrap:4.0.0');
-        expect(dependencies.get('jquery')?.id).toBe('jQuery:3.0.0');
+        expect(dependencies.get('bootstrap')?._id).toBe('bootstrap');
+        expect(dependencies.get('bootstrap')?._version).toBe('4.0.0');
+        expect(dependencies.get('jQuery')?._id).toBe('jQuery');
+        expect(dependencies.get('jQuery')?._version).toBe('3.0.0');
 
         // Check children map
-        const childrenMap: Map<string, string[]> = extractor.childrenMap();
+        const childrenMap: CaseInsensitiveMap<string[]> = extractor.childrenMap();
         expect(childrenMap.size).toBe(2);
         expect(childrenMap.get('jquery')).toHaveLength(0);
         const bootstrap: string[] | undefined = childrenMap.get('bootstrap');

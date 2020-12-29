@@ -1,7 +1,12 @@
 import { Solution } from './Structure/Solution';
-import { Tree, Project } from './OutputStructure';
+import { Tree, Project } from './Structure/OutputStructure';
 
 export class NugetDepsTree {
+    /**
+     * Generates a dependencies tree for the provided solution.
+     * @param slnFilePath
+     * @returns object representation of the dependencies tree.
+     */
     public static generate(slnFilePath: string): any {
         const sol: Solution = Solution.create(slnFilePath);
 

@@ -1,5 +1,5 @@
 import * as log from 'log4js';
-import { NugetDepsTree } from '../src/Main';
+import { NugetDepsTree } from '../src';
 import * as pathUtils from 'path';
 
 const logger = log.getLogger();

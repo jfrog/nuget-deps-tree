@@ -40,6 +40,12 @@ export class Solution {
         this._dependenciesSources = value;
     }
 
+    /**
+     * Create a solution object with projects and dependencies sources,
+     * which will later be used to generate dependencies trees.
+     * @param slnFilePath
+     * @returns the solution object
+     */
     public static create(slnFilePath: string): Solution {
         const sln: Solution = new Solution(slnFilePath);
         sln.getDependenciesSources(slnFilePath);
@@ -50,10 +56,11 @@ export class Solution {
     /**
      * Recursively walk through the file system to find all potential dependencies sources:
      * packages.config and project.assets.json files.
+     * @param slnFilePath
      */
-    public getDependenciesSources(solutionPath: string) {
+    public getDependenciesSources(slnFilePath: string) {
         const curDependenciesSources: string[] = [];
-        walkdir.find(pathUtils.parse(solutionPath).dir, { follow_symlinks: true, sync: true }, (path: string) => {
+        walkdir.find(pathUtils.parse(slnFilePath).dir, { follow_symlinks: true, sync: true }, (path: string) => {
             if (path.endsWith(packagesFileName) || path.endsWith(assetsFileName)) {
                 curDependenciesSources.push(pathUtils.resolve(path));
                 logger.debug('found: ', path);
@@ -66,10 +73,14 @@ export class Solution {
         this._dependenciesSources.push(...curDependenciesSources);
     }
 
+    /**
+     * Loads projects from solution file.
+     * If there are none, a single project is expected to be found in the solution directory.
+     */
     public loadProjects() {
-        const slnProjects: string[] = this.getProjectsFromSln();
-        if (slnProjects.length > 0) {
-            this.loadProjectsFromSolutionFile(slnProjects);
+        const projectsDeclarations: string[] = this.parseSlnFile();
+        if (projectsDeclarations.length > 0) {
+            this.loadProjectsFromSolutionFile(projectsDeclarations);
             return;
         }
         this.loadSingleProjectFromDir();
@@ -86,7 +97,7 @@ export class Solution {
                     );
                     continue;
                 }
-                this.loadSingleProject(parsed.projectName, parsed.csprojPath);
+                this.loadProject(parsed.projectName, parsed.csprojPath);
             } catch (error) {
                 logger.error(
                     "Failed parsing and loading project '%s' from solution %s': %s",
@@ -105,11 +116,18 @@ export class Solution {
         );
         if (csprojFiles.length === 1) {
             const projectName: string = pathUtils.parse(csprojFiles[0]).name;
-            this.loadSingleProject(projectName, csprojFiles[0]);
+            this.loadProject(projectName, csprojFiles[0]);
+            return;
         }
+        logger.warn('Expected only one undeclared project in solution dir. Found: %d', csprojFiles.length);
     }
 
-    public loadSingleProject(projectName: string, csprojPath: string) {
+    /**
+     * Loads a project from path.
+     * @param projectName
+     * @param csprojPath
+     */
+    public loadProject(projectName: string, csprojPath: string) {
         // First we will find the project's dependencies source.
         // It can be located in the project's root directory or in
         // a directory with the project name under the solution root.
@@ -129,12 +147,19 @@ export class Solution {
             logger.debug('Project dependencies was not found for project: %s', projectName);
         }
 
+        // Create a project builder with an extractor. If successful, add to projects list.
         const proj: ProjectBuilder = ProjectBuilder.load(projectName, projectRootPath, dependenciesSource);
         if (proj.extractor) {
             this._projects.push(proj);
         }
     }
 
+    /**
+     * Parses the project's details from it's declaration line in the solution file.
+     * @param projectLine - declaration line of the project in the solution file.
+     * @param solutionDir
+     * @returns parsed project object, with the project's name and path.
+     */
     public parseProject(projectLine: string, solutionDir: string): ParsedProject {
         const parsedLine: string[] = projectLine.split('=');
         if (parsedLine.length <= 1) {
@@ -157,16 +182,16 @@ export class Solution {
     }
 
     public removeQuotes(value: string): string {
-        return value.trim().replace(/^\"|\"$/g, '');
+        return value.trim().replace(/^"|"$/g, '');
     }
 
-    public getProjectsFromSln(): string[] {
-        return this.parseSlnFile(this._filePath);
-    }
-
-    public parseSlnFile(slnFile: string): string[] {
+    /**
+     * Parse solution file for projects declarations.
+     * @returns array of projects declarations lines.
+     */
+    public parseSlnFile(): string[] {
         let projects: string[] = [];
-        const content: string = fs.readFileSync(slnFile).toString();
+        const content: string = fs.readFileSync(this._filePath).toString();
         const re: RegExp = /Project\("(.*)(\r\n|\r|\n)EndProject/g;
         const matches: RegExpMatchArray | null = content.match(re);
         if (matches) {
