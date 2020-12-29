@@ -1,6 +1,6 @@
 {
     "name": "nuget-deps-tree",
-    "version": "0.1.0",
+    "version": "0.2.0",
     "description": "NuGet dependency tree generator",
     "license": "Apache-2.0",
     "repository": {
@@ -14,15 +14,14 @@
     "types": "dist/index.d.ts",
     "scripts": {
         "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\" \"model/**/*.ts\"",
-        "build": "tsc --declaration",
+        "build": "npm run compile",
         "lint": "tslint -p tsconfig.json",
         "prepare": "npm run build",
         "preversion": "npm run lint",
         "watch": "tsc -watch -p ./",
         "compile": "tsc -p ./",
         "pretest": "npm run compile",
-        "test": "jest --verbose",
-        "postinstall": "npm run compile"
+        "test": "jest --verbose"
     },
     "bin": {
         "nuget-deps-tree": "dist/bin/command.js"

@@ -5,7 +5,7 @@ This package was developed by JFrog, and is used by the [JFrog VS-Code Extension
 You may use this package for other purposes and applications as well, either by running via command line or by importing to your project.
 
 ## Installation
-`npm install nuget-deps-tree`
+`npm install -g nuget-deps-tree`
 
 ## Usage
 ### Command Line
