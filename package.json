@@ -3,6 +3,7 @@
     "version": "0.2.0",
     "description": "NuGet dependency tree generator",
     "license": "Apache-2.0",
+    "homepage": "https://github.com/jfrog/nuget-deps-tree",
     "repository": {
         "type": "git",
         "url": "https://github.com/jfrog/nuget-deps-tree"
