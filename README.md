@@ -1,4 +1,4 @@
-[![Build](https://github.com/jfrog/nuget-deps-tree/actions/workflows/test.yml/badge.svg)](https://github.com/jfrog/nuget-deps-tree/actions/workflows/test.yml)
+[![Test](https://github.com/jfrog/nuget-deps-tree/actions/workflows/test.yml/badge.svg)](https://github.com/jfrog/nuget-deps-tree/actions/workflows/test.yml)
 
 # NuGet Dependency Tree
 
