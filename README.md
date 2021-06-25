@@ -1,3 +1,5 @@
+[![Build](https://github.com/jfrog/nuget-deps-tree/actions/workflows/test.yml/badge.svg)](https://github.com/jfrog/nuget-deps-tree/actions/workflows/test.yml)
+
 # NuGet Dependency Tree
 
 This npm package reads the NuGet dependencies of a .NET project, and generates a dependency tree.
