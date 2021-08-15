@@ -1,13 +1,12 @@
-import { ProjectBuilder } from './Project';
-import { CommonUtils } from '../CommonUtils';
-import * as pathUtils from 'path';
 import * as fs from 'fs';
-import * as log from 'log4js';
+import log from 'loglevel';
+import * as pathUtils from 'path';
 import * as walkdir from 'walkdir';
+import { CommonUtils } from '../CommonUtils';
+import { ProjectBuilder } from './Project';
 
 const packagesFileName: string = 'packages.config';
 const assetsFileName: string = 'project.assets.json';
-const logger = log.getLogger();
 
 export class Solution {
     constructor(
@@ -63,7 +62,7 @@ export class Solution {
         walkdir.find(pathUtils.parse(slnFilePath).dir, { follow_symlinks: true, sync: true }, (path: string) => {
             if (path.endsWith(packagesFileName) || path.endsWith(assetsFileName)) {
                 curDependenciesSources.push(pathUtils.resolve(path));
-                logger.debug('found: ', path);
+                log.debug('found: ', path);
             }
         });
         // Sort by length ascending.
@@ -91,7 +90,7 @@ export class Solution {
             try {
                 const parsed: ParsedProject = this.parseProject(project, pathUtils.parse(this._filePath).dir);
                 if (!parsed.csprojPath.endsWith('.csproj')) {
-                    logger.debug(
+                    log.debug(
                         'Skipping a project "%s", since it doesn\'t have a csproj file path.',
                         parsed.projectName
                     );
@@ -99,7 +98,7 @@ export class Solution {
                 }
                 this.loadProject(parsed.projectName, parsed.csprojPath);
             } catch (error) {
-                logger.error(
+                log.error(
                     "Failed parsing and loading project '%s' from solution %s': %s",
                     project,
                     this._filePath,
@@ -119,7 +118,7 @@ export class Solution {
             this.loadProject(projectName, csprojFiles[0]);
             return;
         }
-        logger.warn('Expected only one undeclared project in solution dir. Found: %d', csprojFiles.length);
+        log.warn('Expected only one undeclared project in solution dir. Found: %d', csprojFiles.length);
     }
 
     /**
@@ -144,7 +143,7 @@ export class Solution {
 
         // If no dependencies source was found, we will skip the current project.
         if (!dependenciesSource) {
-            logger.debug('Project dependencies was not found for project: %s', projectName);
+            log.debug('Project dependencies was not found for project: %s', projectName);
         }
 
         // Create a project builder with an extractor. If successful, add to projects list.

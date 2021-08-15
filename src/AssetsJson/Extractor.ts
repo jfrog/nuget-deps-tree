@@ -1,10 +1,9 @@
+import log from 'loglevel';
+import { CaseInsensitiveMap, DependencyDetails, Extractor } from '../../model';
 import { CommonUtils } from '../CommonUtils';
-import { DependencyDetails, Extractor, CaseInsensitiveMap } from '../../model';
 import { AssetsUtils } from './Utils';
-import * as log from 'log4js';
 
 export const assetsFileName: string = 'project.assets.json';
-const logger = log.getLogger();
 
 export class AssetsExtractor implements Extractor {
     constructor(private _assets: any) {}
@@ -17,7 +16,7 @@ export class AssetsExtractor implements Extractor {
      */
     public static isCompatible(projectName: string, dependenciesSource: string): boolean {
         if (dependenciesSource.endsWith(assetsFileName)) {
-            logger.debug('Found', dependenciesSource, 'file for project:', projectName);
+            log.debug('Found', dependenciesSource, 'file for project:', projectName);
             return true;
         }
         return false;

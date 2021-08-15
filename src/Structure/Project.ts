@@ -1,11 +1,9 @@
+import log from 'loglevel';
 import { Extractor } from '../../model';
+import { AssetsExtractor } from '../AssetsJson/Extractor';
 import { DependencyTree } from '../DependencyTree/Tree';
 import { DependenciesUtils } from '../DependencyTree/Utils';
-import * as log from 'log4js';
 import { PackagesExtractor } from '../PackagesConfig/Extractor';
-import { AssetsExtractor } from '../AssetsJson/Extractor';
-
-const logger = log.getLogger();
 
 export class ProjectBuilder {
     constructor(
@@ -79,7 +77,7 @@ export class ProjectBuilder {
         if (AssetsExtractor.isCompatible(projectName, dependenciesSource)) {
             return AssetsExtractor.newExtractor(dependenciesSource);
         }
-        logger.debug('Unsupported project dependencies for project: %s', projectName);
+        log.debug('Unsupported project dependencies for project: %s', projectName);
         return null as any;
     }
 }

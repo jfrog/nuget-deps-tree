@@ -1,16 +1,14 @@
-import { CommonUtils } from '../CommonUtils';
-import { NugetPackage } from './NugetPackage';
-import { DependencyDetails, Extractor, CaseInsensitiveMap } from '../../model';
 import * as exec from 'child_process';
 import * as fse from 'fs-extra';
+import log from 'loglevel';
 import * as pathUtils from 'path';
+import { CaseInsensitiveMap, DependencyDetails, Extractor } from '../../model';
+import { CommonUtils } from '../CommonUtils';
 import { absentNupkgWarnMsg } from '../DependencyTree/Utils';
-import * as log from 'log4js';
 import { Dependency } from '../Structure/Dependency';
+import { NugetPackage } from './NugetPackage';
 
 const packagesFileName: string = 'packages.config';
-const logger = log.getLogger();
-
 export class PackagesExtractor implements Extractor {
     constructor(
         private _allDependencies: CaseInsensitiveMap<DependencyDetails>,
@@ -49,7 +47,7 @@ export class PackagesExtractor implements Extractor {
      */
     public static isCompatible(projectName: string, dependenciesSource: string): boolean {
         if (dependenciesSource.endsWith(packagesFileName)) {
-            logger.debug('Found', dependenciesSource, 'file for project:', projectName);
+            log.debug('Found', dependenciesSource, 'file for project:', projectName);
             return true;
         }
         return false;
@@ -194,7 +192,7 @@ export class PackagesExtractor implements Extractor {
                 this._allDependencies.set(id, new Dependency(id, version));
                 this._childrenMap.set(id, Array.from(pack.dependencies.keys()));
             } else {
-                logger.warn(
+                log.warn(
                     'The following NuGet package %s with version %s was not found in the NuGet cache %s.' +
                         absentNupkgWarnMsg,
                     nuget.id,
