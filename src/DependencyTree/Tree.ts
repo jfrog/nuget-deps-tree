@@ -1,7 +1,5 @@
-import * as log from 'log4js';
-import { DependencyDetails, CaseInsensitiveMap } from '../../model';
-
-const logger = log.getLogger();
+import log from 'loglevel';
+import { CaseInsensitiveMap, DependencyDetails } from '../../model';
 
 export class DependencyTree {
     private _dependencies: DependencyTree[] = [];
@@ -71,7 +69,7 @@ export class DependencyTree {
                 );
                 this._dependencies?.push(childTree);
             } else {
-                logger.warn('unexpected dependency found in children array: %s', childId);
+                log.warn('unexpected dependency found in children array: %s', childId);
             }
         }
     }

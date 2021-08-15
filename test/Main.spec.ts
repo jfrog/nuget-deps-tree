@@ -1,8 +1,6 @@
-import * as log from 'log4js';
-import { NugetDepsTree } from '../src';
+import log from 'loglevel';
 import * as pathUtils from 'path';
-
-const logger = log.getLogger();
+import { NugetDepsTree } from '../src';
 
 describe('Nuget Deps Tree Tests', () => {
     test('Run', () => {
@@ -10,6 +8,6 @@ describe('Nuget Deps Tree Tests', () => {
             pathUtils.join(__dirname, 'resources', 'packagereferences', 'simple-multi-assets', 'assets.sln')
         );
         expect(tree.projects).toHaveLength(2);
-        logger.info(tree);
+        log.info(tree);
     });
 });

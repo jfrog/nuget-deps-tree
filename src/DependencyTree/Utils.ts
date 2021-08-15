@@ -1,8 +1,6 @@
-import { DependencyDetails, Extractor, CaseInsensitiveMap } from '../../model';
+import log from 'loglevel';
+import { CaseInsensitiveMap, DependencyDetails, Extractor } from '../../model';
 import { DependencyTree } from './Tree';
-import * as log from 'log4js';
-
-const logger = log.getLogger();
 
 type Root = DependencyTree[];
 export const absentNupkgWarnMsg: string =
@@ -26,7 +24,7 @@ export class DependenciesUtils {
             if (dependency) {
                 rootTree.push(new DependencyTree(dependency._id, dependency._version, allDependencies, childrenMap));
             } else {
-                logger.warn('unexpected dependency found in root dependencies array: %s', rootId);
+                log.warn('unexpected dependency found in root dependencies array: %s', rootId);
             }
         }
         return rootTree;

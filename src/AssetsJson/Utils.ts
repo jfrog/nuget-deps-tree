@@ -1,13 +1,11 @@
-import { absentNupkgWarnMsg } from '../DependencyTree/Utils';
-import * as pathUtils from 'path';
 import * as fse from 'fs-extra';
-import * as log from 'log4js';
+import log from 'loglevel';
+import * as pathUtils from 'path';
+import { CaseInsensitiveMap, DependencyDetails } from '../../model';
 import { CommonUtils } from '../CommonUtils';
-import { assetsFileName } from './Extractor';
-import { DependencyDetails, CaseInsensitiveMap } from '../../model';
+import { absentNupkgWarnMsg } from '../DependencyTree/Utils';
 import { Dependency } from '../Structure/Dependency';
-
-const logger = log.getLogger();
+import { assetsFileName } from './Extractor';
 
 export class AssetsUtils {
     /**
@@ -55,7 +53,7 @@ export class AssetsUtils {
             // A package is a dependency if a nuget package file exists in Nuget cache directory.
             if (!fse.pathExistsSync(nupkgFilePath)) {
                 if (this.isPackagePartOfTargetDependencies(assets, libraryPath)) {
-                    logger.warn(
+                    log.warn(
                         'The file',
                         nupkgFilePath,
                         "doesn't exist in the NuGet cache directory but it does exist as a target in the assets files." +

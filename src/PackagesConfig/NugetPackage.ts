@@ -1,9 +1,7 @@
-import { CommonUtils } from '../CommonUtils';
 import * as lodash from 'lodash';
-import * as log from 'log4js';
+import log from 'loglevel';
 import { CaseInsensitiveMap } from '../../model';
-
-const logger = log.getLogger();
+import { CommonUtils } from '../CommonUtils';
 
 export class NugetPackage {
     private _dependencies: CaseInsensitiveMap<boolean> = new CaseInsensitiveMap<boolean>();
@@ -41,7 +39,7 @@ export class NugetPackage {
         try {
             nuspec = CommonUtils.parseXmlToObject(nuspecContent);
         } catch (error) {
-            logger.warn(
+            log.warn(
                 "Package: %s couldn't be parsed due to: %s. Skipping the package dependency.",
                 this._id + ':' + this._version,
                 error
