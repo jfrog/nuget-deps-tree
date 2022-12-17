@@ -7,7 +7,7 @@ export class NugetDepsTree {
      * @param slnFilePath
      * @returns object representation of the dependencies tree.
      */
-    public static generate(slnFilePath: string): any {
+    public static generate(slnFilePath: string): Tree {
         const sol: Solution = Solution.create(slnFilePath);
 
         const nugetDepsTree = new Tree([]);
