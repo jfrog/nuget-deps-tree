@@ -14,7 +14,7 @@ export class AssetsUtils {
      */
     public static getDirectDependencies(assets: any): string[] {
         const directDependencies: string[] = [];
-        const frameworks = CommonUtils.getPropertyOrUndefined(assets, 'project.frameworks');
+        const frameworks: any = CommonUtils.getPropertyOrUndefined(assets, 'project.frameworks');
         for (const framework in frameworks) {
             for (const dependencyId in CommonUtils.getPropertyOrUndefined(frameworks[framework], 'dependencies')) {
                 directDependencies.push(dependencyId);
@@ -35,10 +35,10 @@ export class AssetsUtils {
             CommonUtils.getPropertyStrictly(assets, 'project.restore.packagesPath', assetsFileName)
         );
 
-        const libraries = CommonUtils.getPropertyOrUndefined(assets, 'libraries');
+        const libraries: any = CommonUtils.getPropertyOrUndefined(assets, 'libraries');
         for (const dependency in libraries) {
-            const library = libraries[dependency];
-            const type = CommonUtils.getPropertyStrictly(library, 'type', assetsFileName);
+            const library: any = libraries[dependency];
+            const type: any = CommonUtils.getPropertyStrictly(library, 'type', assetsFileName);
             if (type === 'project') {
                 continue;
             }
@@ -76,9 +76,9 @@ export class AssetsUtils {
     public static getChildrenMap(assets: any): CaseInsensitiveMap<string[]> {
         const dependenciesRelations: CaseInsensitiveMap<string[]> = new CaseInsensitiveMap<string[]>();
         // If has no target dependencies, loop is skipped.
-        const targets = CommonUtils.getPropertyOrUndefined(assets, 'targets');
+        const targets: any = CommonUtils.getPropertyOrUndefined(assets, 'targets');
         for (const target in targets) {
-            const targetDependencies = targets[target];
+            const targetDependencies: any = targets[target];
             for (const dependency in targetDependencies) {
                 const transitive: string[] = [];
                 // If has no dependencies, loop is skipped.

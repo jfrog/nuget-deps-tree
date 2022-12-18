@@ -60,7 +60,7 @@ export class NugetPackage {
         }
 
         // Dependencies might be grouped.
-        const groupArray = lodash.get(metaDataDep, 'group');
+        const groupArray: any = lodash.get(metaDataDep, 'group');
         if (groupArray) {
             for (const group of groupArray) {
                 if (group.dependency) {
