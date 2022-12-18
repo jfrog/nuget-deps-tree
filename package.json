@@ -27,6 +27,10 @@
     "bin": {
         "nuget-deps-tree": "dist/bin/command.js"
     },
+    "engines": {
+        "node": ">=16",
+        "npm": ">=7"
+    },
     "files": [
         "dist/**/*"
     ],
