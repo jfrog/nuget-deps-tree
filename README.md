@@ -10,6 +10,9 @@ You may use this package for other purposes and applications as well, either by 
 `npm install -g nuget-deps-tree`
 
 ## Usage
+### Prerequisites
+`nuget` (or `nuget.exe`) should be available in $PATH.
+
 ### Command Line
 `nuget-deps-tree [path to sln file]`
 
@@ -59,6 +62,9 @@ let tree = NugetDepsTree.generate(pathToSlnFile);
 ```
 
 ## Building and Testing the Sources
+### Preconditions
+* npm 7 and above
+
 To build the plugin sources, please follow these steps:
 * Clone the code from git.
 * Install and pack the nuget-deps-tree dependency locally, by running the following npm commands:
