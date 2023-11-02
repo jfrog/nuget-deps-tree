@@ -48,7 +48,7 @@ export class NugetPackage {
         }
 
         // Get metadata dependencies if such exist. Check if fields exist before iterating over, but not strictly.
-        const metaDataDep: any = lodash.get(nuspec, 'package[0].metadata[0].dependencies[0]');
+        const metaDataDep: any = lodash.get(nuspec, 'package.metadata.dependencies');
         if (!metaDataDep) {
             return;
         }
