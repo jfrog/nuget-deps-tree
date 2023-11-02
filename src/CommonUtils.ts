@@ -4,6 +4,7 @@ import * as os from 'os';
 import which from 'which';
 import * as lodash from 'lodash';
 import * as parser from 'fast-xml-parser';
+import { XMLParser } from 'fast-xml-parser';
 
 export class CommonUtils {
     /**
@@ -88,6 +89,7 @@ export class CommonUtils {
      * @returns parsed xml object.
      */
     public static parseXmlToObject(xmlContent: string): any {
-        return parser.parse(xmlContent, { ignoreAttributes: false, attributeNamePrefix: '', arrayMode: true });
+        const parser: parser.XMLParser = new XMLParser({ ignoreAttributes: false, attributeNamePrefix: '' });
+        return parser.parse(xmlContent);
     }
 }
