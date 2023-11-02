@@ -89,7 +89,7 @@ export class CommonUtils {
      * @returns parsed xml object.
      */
     public static parseXmlToObject(xmlContent: string): any {
-        const parser: parser.XMLParser = new XMLParser({ ignoreAttributes: false, attributeNamePrefix: ''});
+        const parser: parser.XMLParser = new XMLParser({ ignoreAttributes: false, attributeNamePrefix: '' });
         return parser.parse(xmlContent);
     }
 }
