@@ -12,4 +12,18 @@ if (["-h", "-help", "help"].includes(args[0])) {
 }
 
 const depsTree: any = NugetDepsTree.generate(args[0])
-console.info(JSON.stringify(depsTree, null, 2))
+
+function print(tree: DependencyTree, level: number = 0) {
+    const prefix = "  ".repeat(level)
+    console.info(`${prefix}${tree.id}@${tree.version}`)
+    tree.dependencies.forEach((dep: any) => print(dep, level + 1))
+}
+
+function printProject(project: Project) {
+    console.info(project.name)
+    project.dependencies.forEach((dep: any) => print(dep, 1))
+}
+
+depsTree.projects.forEach((project: Project) => printProject(project))
+
+// console.info(JSON.stringify(depsTree, null, 2))
