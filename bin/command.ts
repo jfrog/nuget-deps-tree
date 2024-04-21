@@ -1,17 +1,18 @@
 #! /usr/bin/env node
-import { NugetDepsTree } from '../src';
+import { NugetDepsTree, Project, DependencyTree } from '../src';
+const { program } = require('commander');
 
-const args = process.argv.slice(2);
-if (args.length !== 1) {
-    throw new Error("Wrong number of arguments. Command accepts only one argument, which is a path to a solution file.")
-}
+program
+  .name('nuget-deps-tree')
+  .description("Nuget Dependency Tree Generator.")
+  .argument("<sln>", "solution file name")
+  .option('--text', "print it in plain text format")
 
-if (["-h", "-help", "help"].includes(args[0])) {
-    console.info("nuget-deps-tree - Nuget Dependency Tree Generator.\nUsage: nuget-deps-tree [path to sln file]")
-    process.exit(0)
-}
+program.parse();
 
-const depsTree: any = NugetDepsTree.generate(args[0])
+const options = program.opts();
+
+const depsTree: any = NugetDepsTree.generate(program.args[0])
 
 function print(tree: DependencyTree, level: number = 0) {
     const prefix = "  ".repeat(level)
@@ -24,6 +25,10 @@ function printProject(project: Project) {
     project.dependencies.forEach((dep: any) => print(dep, 1))
 }
 
-depsTree.projects.forEach((project: Project) => printProject(project))
-
-// console.info(JSON.stringify(depsTree, null, 2))
+if(options.text)
+{
+    depsTree.projects.forEach((project: Project) => printProject(project))
+} else
+{
+    console.info(JSON.stringify(depsTree, null, 2))
+}
