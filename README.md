@@ -14,7 +14,13 @@ You may use this package for other purposes and applications as well, either by 
 `nuget` (or `nuget.exe`) should be available in $PATH.
 
 ### Command Line
-`nuget-deps-tree [path to sln file]`
+`nuget-deps-tree [path to sln file]`, it will print dependencies in json.
+
+or
+
+`nuget-deps-tree --text [path to sln file]`, it will print dependencies in plain text as below:
+
+![plaintext](./screenshots/plainTextFormat.jpg)
 
 ### Project Dependency
 ```ts
