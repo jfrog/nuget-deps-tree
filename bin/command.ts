@@ -5,7 +5,7 @@ const { program } = require('commander');
 program
     .name('nuget-deps-tree')
     .description('Nuget Dependency Tree Generator.')
-    .argument('<sln>', 'solution file name')
+    .argument('<sln>', 'solution file path')
     .option('--text', 'print it in plain text format');
 
 program.parse();
