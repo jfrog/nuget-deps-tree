@@ -14,7 +14,7 @@
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
     "scripts": {
-        "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\" \"model/**/*.ts\" \".eslintrc.js\"",
+        "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\" \"model/**/*.ts\" \".eslintrc.js\" \"bin/**/*.ts\"",
         "build": "npm run compile",
         "lint": "eslint -c .eslintrc.js --ext .ts src",
         "prepare": "npm run build",
