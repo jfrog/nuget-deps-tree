@@ -69,7 +69,8 @@ let tree = NugetDepsTree.generate(pathToSlnFile);
 
 ## Building and Testing the Sources
 ### Preconditions
-* npm 7 and above
+* npm 10 or above
+* Node 18 or above
 
 To build the plugin sources, please follow these steps:
 * Clone the code from git.
