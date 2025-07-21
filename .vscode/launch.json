@@ -16,6 +16,17 @@
             "internalConsoleOptions": "neverOpen",
             "disableOptimisticBPs": true,
             "program": "${workspaceFolder}/node_modules/jest/bin/jest"
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Run nuget-deps-tree on C-Sharp solution",
+            "program": "${workspaceFolder}/bin/command.ts",
+            "args": ["/path/to/your.sln"],
+            "cwd": "${workspaceFolder}",
+            "env": {},
+            "console": "integratedTerminal",
+            "internalConsoleOptions": "openOnSessionStart"
         }
     ]
 }
