@@ -2,7 +2,7 @@ name: Release
 
 on:
     release:
-        types: published
+        types: [published]
 jobs:
     release:
         runs-on: ubuntu-latest
@@ -11,9 +11,9 @@ jobs:
             - name: Setup NodeJS
               uses: actions/setup-node@v4
               with:
-                  node-version: '18'
-                  registry-url: 'https://registry.npmjs.org'
-                  scope: '@jfrog'
+                node-version: '18'
+                registry-url: 'https://registry.npmjs.org'
+
             - name: Install
               run: npm i
             - name: Update version
