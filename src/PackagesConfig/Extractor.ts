@@ -169,7 +169,13 @@ export class PackagesExtractor implements Extractor {
      * @param globalPackagesCache
      */
     public extract(packagesConfig: any, globalPackagesCache: string) {
-        const packages: any = CommonUtils.getPropertyOrUndefined(packagesConfig, 'packages.package');
+        let packages: any = CommonUtils.getPropertyOrUndefined(packagesConfig, 'packages.package');
+        if (!packages) {
+            return;
+        }
+        if (!Array.isArray(packages)) {
+            packages = [packages];
+        }
         for (const nuget of packages) {
             const id: string = nuget.id;
             const version: string = nuget.version;
