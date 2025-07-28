@@ -132,10 +132,13 @@ export class Solution {
         // a directory with the project name under the solution root.
         const projectRootPath: string = pathUtils.dirname(csprojPath);
         const projectPathPattern: string = projectRootPath + pathUtils.sep;
-        const projectNamePattern: string = pathUtils.sep + projectName + pathUtils.sep;
+        const projectNamePattern: string = pathUtils.sep + projectName;
         let dependenciesSource: string = '';
         this._dependenciesSources.some((source: string) => {
-            if (source.includes(projectPathPattern) || source.includes(projectNamePattern)) {
+            const isInRoot: boolean = projectRootPath === pathUtils.dirname(source);
+            const isUnderProjectDir: boolean = source.includes(projectPathPattern);
+            const isUnderSubDirWithProjectName: boolean = source.endsWith(projectNamePattern);
+            if (isInRoot || isUnderProjectDir || isUnderSubDirWithProjectName) {
                 dependenciesSource = source;
                 return true;
             }
