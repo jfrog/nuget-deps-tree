@@ -1,8 +1,67 @@
 import * as path from 'path';
 import { PackagesExtractor } from '../src/PackagesConfig/Extractor';
 import { DependencyDetails, CaseInsensitiveMap } from '../model';
+import { NugetPackage } from '../src/PackagesConfig/NugetPackage';
 
 describe('Packages Config Tests', () => {
+    test('NugetPackage group.dependency handles array and single object', () => {
+        // Single dependency object
+        const nuspecSingle: string = `<?xml version="1.0"?>
+        <package>
+          <metadata>
+            <id>testpkg</id>
+            <version>1.0.0</version>
+            <dependencies>
+              <group>
+                <dependency id="dep1" />
+              </group>
+            </dependencies>
+          </metadata>
+        </package>`;
+        const pkgSingle: NugetPackage = new NugetPackage('testpkg', '1.0.0', nuspecSingle);
+        expect(pkgSingle.dependencies.has('dep1')).toBe(true);
+
+        // Multiple dependencies array
+        const nuspecArray: string = `<?xml version="1.0"?>
+        <package>
+          <metadata>
+            <id>testpkg</id>
+            <version>1.0.0</version>
+            <dependencies>
+              <group>
+                <dependency id="dep1" />
+                <dependency id="dep2" />
+              </group>
+            </dependencies>
+          </metadata>
+        </package>`;
+        const pkgArray: NugetPackage = new NugetPackage('testpkg', '1.0.0', nuspecArray);
+        expect(pkgArray.dependencies.has('dep1')).toBe(true);
+        expect(pkgArray.dependencies.has('dep2')).toBe(true);
+
+        // Multiple groups with mixed one/multiple dependencies
+        const nuspecMixed: string = `<?xml version="1.0"?>
+        <package>
+          <metadata>
+            <id>testpkg</id>
+            <version>1.0.0</version>
+            <dependencies>
+              <group>
+                <dependency id="dep1" />
+              </group>
+              <group>
+                <dependency id="dep2" />
+                <dependency id="dep3" />
+              </group>
+            </dependencies>
+          </metadata>
+        </package>`;
+        const pkgMixed: NugetPackage = new NugetPackage('testpkg', '1.0.0', nuspecMixed);
+        expect(pkgMixed.dependencies.has('dep1')).toBe(true);
+        expect(pkgMixed.dependencies.has('dep2')).toBe(true);
+        expect(pkgMixed.dependencies.has('dep3')).toBe(true);
+    });
+
     const resources: string = path.join(__dirname, 'resources');
     const packagesCache: string = path.join(resources, 'packagesconfig', 'packages');
 
