@@ -64,7 +64,7 @@ export class NugetPackage {
         if (groupArray) {
             for (const group of groupArray) {
                 if (group.dependency) {
-                    for (const dependency of group.dependency) {
+                    for (const dependency of Array.isArray(group.dependency) ? group.dependency : [group.dependency]) {
                         this._dependencies?.set(dependency.id, true);
                     }
                 }
