@@ -54,7 +54,7 @@ export class NugetPackage {
         }
         const depArray: any = lodash.get(metaDataDep, 'dependency');
         if (depArray) {
-            for (const dependency of depArray) {
+            for (const dependency of Array.isArray(depArray) ? depArray : [depArray]) {
                 this._dependencies?.set(dependency.id, true);
             }
         }
@@ -62,9 +62,9 @@ export class NugetPackage {
         // Dependencies might be grouped.
         const groupArray: any = lodash.get(metaDataDep, 'group');
         if (groupArray) {
-            for (const group of groupArray) {
+            for (const group of Array.isArray(groupArray) ? groupArray : [groupArray]) {
                 if (group.dependency) {
-                    for (const dependency of group.dependency) {
+                    for (const dependency of Array.isArray(group.dependency) ? group.dependency : [group.dependency]) {
                         this._dependencies?.set(dependency.id, true);
                     }
                 }
