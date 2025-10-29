@@ -8,6 +8,13 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v1
+
+            - name: Start FastCI Optimization
+              uses: jfrog-fastci/fastci@main
+              with:
+                github_token: ${{ secrets.GITHUB_TOKEN }}
+                fastci_otel_token: ${{ secrets.FASTCI_TOKEN }}
+            
             - name: Setup NodeJS
               uses: actions/setup-node@v4
               with:
