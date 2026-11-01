@@ -9,6 +9,11 @@ import { Dependency } from '../Structure/Dependency';
 import { NugetPackage } from './NugetPackage';
 
 const packagesFileName: string = 'packages.config';
+
+type ResolvedCommand = { file: string; args: string[] };
+
+type StartSpec = { file: string; args: string[]; windowsVerbatimArguments?: boolean };
+
 export class PackagesExtractor implements Extractor {
     constructor(
         private _allDependencies: CaseInsensitiveMap<DependencyDetails>,
@@ -314,45 +319,117 @@ export class PackagesExtractor implements Extractor {
      * @returns command output.
      */
     public runGlobalPackagesCommand(): string {
-        let cmd: string = this.getExecutablePath();
-        cmd += ' locals global-packages -list';
-        let output: string = '';
-        try {
-            output = exec.execSync(cmd, { maxBuffer: 10485760 }).toString();
-        } catch (error) {
-            throw new Error("Running '" + cmd + "' failed with error: " + error);
+        const command: ResolvedCommand = this.resolveCommand();
+        const spec: StartSpec = PackagesExtractor.startSpec(
+            command.file,
+            command.args,
+            CommonUtils.isWindows(),
+            process.cwd(),
+            process.env.ComSpec || '',
+            process.env.SystemRoot || ''
+        );
+        const shown: string = [spec.file, ...spec.args].join(' ');
+        const options: { maxBuffer: number; windowsVerbatimArguments?: boolean } = { maxBuffer: 10485760 };
+        if (spec.windowsVerbatimArguments === true) {
+            options.windowsVerbatimArguments = true;
         }
-        return output;
+        try {
+            return exec.execFileSync(spec.file, spec.args, options).toString();
+        } catch (error) {
+            throw new Error("Running '" + shown + "' failed with error: " + error);
+        }
+    }
+
+    /**
+     * How to start a resolved client. Executables start directly.
+     * Windows batch files start through the system command processor, never one found on PATH.
+     * @param file - resolved client path.
+     * @param args - arguments for the client.
+     * @param windows - whether Windows batch rules apply.
+     * @param cwd - working directory that must not supply the command processor.
+     * @param comSpec - candidate command processor path.
+     * @param systemRoot - Windows directory used when comSpec is not acceptable.
+     * @returns the file and arguments for execFile.
+     */
+    public static startSpec(
+        file: string,
+        args: readonly string[],
+        windows: boolean,
+        cwd: string,
+        comSpec: string,
+        systemRoot: string
+    ): StartSpec {
+        const extension: string = pathUtils.extname(file).toLowerCase();
+        if (!windows || (extension !== '.cmd' && extension !== '.bat')) {
+            return { file: file, args: [...args] };
+        }
+        const cmdExe: string = PackagesExtractor.pinnedCmdExe(file, cwd, comSpec, systemRoot);
+        const commandLine: string = [file, ...args].map((arg: string) => PackagesExtractor.quoteCmdArg(arg)).join(' ');
+        return {
+            file: cmdExe,
+            args: ['/d', '/s', '/c', '"' + commandLine + '"'],
+            windowsVerbatimArguments: true,
+        };
+    }
+
+    private static pinnedCmdExe(file: string, cwd: string, comSpec: string, systemRoot: string): string {
+        if (PackagesExtractor.isAcceptableCmd(comSpec, cwd)) {
+            return comSpec;
+        }
+        const fallback: string = pathUtils.join(systemRoot, 'System32', 'cmd.exe');
+        if (PackagesExtractor.isAcceptableCmd(fallback, cwd)) {
+            return fallback;
+        }
+        throw new Error('Could not find the system command processor to run: ' + file);
+    }
+
+    private static isAcceptableCmd(candidate: string, cwd: string): boolean {
+        if (!pathUtils.isAbsolute(candidate)) {
+            return false;
+        }
+        if (pathUtils.basename(candidate).toLowerCase() !== 'cmd.exe') {
+            return false;
+        }
+        if (!fse.pathExistsSync(candidate)) {
+            return false;
+        }
+        return !CommonUtils.livesIn(cwd, candidate);
+    }
+
+    private static quoteCmdArg(arg: string): string {
+        if (arg.includes('"') || arg.includes('\n') || arg.includes('\r')) {
+            throw new Error('could neither find nuget client path, nor mono and nuget executable path');
+        }
+        const escaped: string = arg.replace(/%/g, '%%');
+        return '"' + escaped + '"';
+    }
+
+    /**
+     * Program to start, and the arguments that follow it.
+     * The program is never taken from the working directory.
+     */
+    private resolveCommand(): ResolvedCommand {
+        const nugetArgs: string[] = ['locals', 'global-packages', '-list'];
+        const nugetPath: string = CommonUtils.lookPath('nuget');
+        if (nugetPath) {
+            return { file: nugetPath, args: nugetArgs };
+        }
+        if (CommonUtils.isWindows()) {
+            throw new Error('could neither find nuget client path, nor mono and nuget executable path');
+        }
+        const monoPath: string = CommonUtils.lookPath('mono');
+        const nugetExePath: string = CommonUtils.lookPath('nuget.exe');
+        if (!monoPath || !nugetExePath) {
+            throw new Error('could neither find nuget client path, nor mono and nuget executable path');
+        }
+        return { file: monoPath, args: [nugetExePath, ...nugetArgs] };
     }
 
     /**
      * Get path of executable suitable for running the command, according to the operating system.
      */
     public getExecutablePath(): string {
-        if (CommonUtils.isWindows()) {
-            return CommonUtils.lookPath('nuget');
-        }
-        return this.getNonWindowsExecutablePath();
-    }
-
-    /**
-     * NuGet can be run on non Windows OS in one of the following ways:
-     * 1. using nuget client
-     * 2. using Mono
-     */
-    public getNonWindowsExecutablePath(): string {
-        const nugetPath: string = CommonUtils.lookPath('nuget');
-        if (nugetPath) {
-            return nugetPath;
-        }
-        // If 'nuget' wasn't found, we Will try to run nuget using mono.
-        // Mono's first argument is nuget.exe's path, so we will look for both mono and nuget.exe in PATH.
-        const monoPath: string = CommonUtils.lookPath('mono');
-        const nugetExePath: string = CommonUtils.lookPath('nuget.exe');
-        if (!monoPath || !nugetExePath) {
-            throw new Error('could neither find nuget client path, nor mono and nuget executable path');
-        }
-        return monoPath + ' ' + nugetExePath;
+        return this.resolveCommand().file;
     }
 }
 
