@@ -1,8 +1,9 @@
 import * as pathUtils from 'path';
 import * as fse from 'fs-extra';
 import * as os from 'os';
-import which from 'which';
 import * as lodash from 'lodash';
+
+const defaultPathExt: string = '.EXE;.CMD;.BAT;.COM';
 import * as parser from 'fast-xml-parser';
 import { XMLParser } from 'fast-xml-parser';
 
@@ -40,7 +41,148 @@ export class CommonUtils {
      * @returns path to executable.
      */
     public static lookPath(cmd: string): string {
-        return which.sync(cmd, { nothrow: true }) || '';
+        const pathEnv: string = process.env.PATH || '';
+        const pathExt: string = process.env.PATHEXT || defaultPathExt;
+        return CommonUtils.findOnPath(cmd, pathEnv, process.cwd(), CommonUtils.isWindows(), pathExt);
+    }
+
+    /**
+     * Find cmd on pathEnv, never inside cwd.
+     * @param cmd - executable name.
+     * @param pathEnv - path entries separated by the platform delimiter for the selected rules.
+     * @param cwd - directory that must not supply the executable.
+     * @param windows - whether Windows suffix rules apply.
+     * @param pathExt - Windows PATHEXT value.
+     * @returns path to executable, or empty when none is acceptable.
+     */
+    public static findOnPath(cmd: string, pathEnv: string, cwd: string, windows: boolean, pathExt: string): string {
+        const delimiter: string = windows ? ';' : ':';
+        const resolvedCwd: string = CommonUtils.canonical(cwd);
+        const suffixes: string[] = CommonUtils.suffixesFor(cmd, windows, pathExt);
+        const entries: string[] = pathEnv.split(delimiter);
+        for (const entry of entries) {
+            let raw: string = entry;
+            if (windows && raw.length >= 2 && raw.startsWith('"') && raw.endsWith('"')) {
+                raw = raw.slice(1, -1);
+            }
+            const dir: string = pathUtils.resolve(cwd, raw);
+            if (CommonUtils.isInside(resolvedCwd, CommonUtils.canonical(dir))) {
+                continue;
+            }
+            const match: string = CommonUtils.matchInDir(dir, cmd, suffixes, windows);
+            if (match === '') {
+                continue;
+            }
+            if (CommonUtils.isInside(resolvedCwd, CommonUtils.canonical(match))) {
+                continue;
+            }
+            return match;
+        }
+        return '';
+    }
+
+    private static canonical(filePath: string): string {
+        const resolved: string = pathUtils.resolve(filePath);
+        try {
+            return fse.realpathSync(resolved);
+        } catch (error) {
+            return resolved;
+        }
+    }
+
+    private static suffixesFor(cmd: string, windows: boolean, pathExt: string): string[] {
+        if (!windows) {
+            return [''];
+        }
+        const raw: string = pathExt || defaultPathExt;
+        const suffixes: string[] = raw.split(';').filter((ext: string) => ext !== '');
+        if (cmd.includes('.')) {
+            return ['', ...suffixes];
+        }
+        if (suffixes.length === 0) {
+            return [''];
+        }
+        return suffixes;
+    }
+
+    private static matchInDir(dir: string, cmd: string, suffixes: string[], windows: boolean): string {
+        let names: string[] = [];
+        try {
+            names = fse.readdirSync(dir);
+        } catch (error) {
+            return '';
+        }
+        for (const suffix of suffixes) {
+            const wanted: string = cmd + suffix;
+            const found: string | undefined = names.find((name: string) =>
+                windows ? name.toLowerCase() === wanted.toLowerCase() : name === wanted
+            );
+            if (found === undefined) {
+                continue;
+            }
+            const candidate: string = pathUtils.join(dir, found);
+            if (!CommonUtils.isRunnableFile(candidate, windows)) {
+                continue;
+            }
+            if (CommonUtils.batchPathIsUnsafe(candidate)) {
+                continue;
+            }
+            return candidate;
+        }
+        return '';
+    }
+
+    private static isRunnableFile(candidate: string, windows: boolean): boolean {
+        let stat: fse.Stats;
+        try {
+            stat = fse.statSync(candidate);
+        } catch (error) {
+            return false;
+        }
+        if (!stat.isFile()) {
+            return false;
+        }
+        if (windows) {
+            return true;
+        }
+        try {
+            fse.accessSync(candidate, fse.constants.X_OK);
+        } catch (error) {
+            return false;
+        }
+        return true;
+    }
+
+    private static batchPathIsUnsafe(candidate: string): boolean {
+        const extension: string = pathUtils.extname(candidate).toLowerCase();
+        if (extension !== '.cmd' && extension !== '.bat') {
+            return false;
+        }
+        return (
+            candidate.includes('"') ||
+            candidate.includes('%') ||
+            candidate.includes('\n') ||
+            candidate.includes('\r')
+        );
+    }
+
+    /**
+     * True when child is parent, or a file or directory inside parent.
+     * Links are resolved before the comparison.
+     * @param parent - directory that must not contain child.
+     * @param child - path to test.
+     * @returns whether child lives in parent.
+     */
+    public static livesIn(parent: string, child: string): boolean {
+        return CommonUtils.isInside(CommonUtils.canonical(parent), CommonUtils.canonical(child));
+    }
+
+    private static isInside(parent: string, child: string): boolean {
+        const relative: string = pathUtils.relative(pathUtils.resolve(parent), pathUtils.resolve(child));
+        if (relative === '') {
+            return true;
+        }
+        return relative !== '..' && !relative.startsWith('..' + pathUtils.sep) && !pathUtils.isAbsolute(relative);
     }
 
     /**
