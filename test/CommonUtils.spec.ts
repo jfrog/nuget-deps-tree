@@ -173,6 +173,32 @@ describe('CommonUtils.findOnPath', () => {
         expect(found).toBe(path.join(bin, 'nuget.exe'));
     });
 
+    test('on Windows rules skips a batch path that contains a percent and uses a later client', () => {
+        const root: string = makeRoot();
+        const cwd: string = path.join(root, 'work');
+        const bad: string = path.join(root, 'tools%folder');
+        const bin: string = path.join(root, 'bin');
+        fs.mkdirSync(cwd);
+        writeFile(path.join(bad, 'nuget.cmd'), false);
+        writeFile(path.join(bin, 'nuget.exe'), false);
+
+        const found: string = CommonUtils.findOnPath('nuget', bad + ';' + bin, cwd, true, PATHEXT);
+
+        expect(found).toBe(path.join(bin, 'nuget.exe'));
+    });
+
+    test('on Windows rules keeps an executable whose path contains a percent', () => {
+        const root: string = makeRoot();
+        const cwd: string = path.join(root, 'work');
+        const bin: string = path.join(root, 'tools%folder');
+        fs.mkdirSync(cwd);
+        writeFile(path.join(bin, 'nuget.exe'), false);
+
+        const found: string = CommonUtils.findOnPath('nuget', bin, cwd, true, PATHEXT);
+
+        expect(found).toBe(path.join(bin, 'nuget.exe'));
+    });
+
     posixTest('on Windows rules skips a batch path that contains a quote and uses a later client', () => {
         const root: string = makeRoot();
         const cwd: string = path.join(root, 'work');

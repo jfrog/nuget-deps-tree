@@ -398,7 +398,9 @@ export class PackagesExtractor implements Extractor {
 
     private static quoteCmdArg(arg: string): string {
         if (arg.includes('"') || arg.includes('\n') || arg.includes('\r')) {
-            throw new Error('could neither find nuget client path, nor mono and nuget executable path');
+            throw new Error(
+                'Refusing to run a batch file with an unsafe quote or line break in its path or arguments: ' + arg
+            );
         }
         const escaped: string = arg.replace(/%/g, '%%');
         return '"' + escaped + '"';

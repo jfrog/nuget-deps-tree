@@ -158,7 +158,12 @@ export class CommonUtils {
         if (extension !== '.cmd' && extension !== '.bat') {
             return false;
         }
-        return candidate.includes('"') || candidate.includes('\n') || candidate.includes('\r');
+        return (
+            candidate.includes('"') ||
+            candidate.includes('%') ||
+            candidate.includes('\n') ||
+            candidate.includes('\r')
+        );
     }
 
     /**

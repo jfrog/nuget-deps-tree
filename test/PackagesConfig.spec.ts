@@ -291,7 +291,7 @@ describe('PackagesExtractor global packages command', () => {
                 cmdExe,
                 path.join(root, 'Windows')
             )
-        ).toThrow('could neither find nuget client path, nor mono and nuget executable path');
+        ).toThrow('Refusing to run a batch file with an unsafe quote or line break in its path or arguments: ');
     });
 
     test('does not use a command processor that lives in the working directory', () => {
