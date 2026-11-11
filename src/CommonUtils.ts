@@ -2,6 +2,7 @@ import * as pathUtils from 'path';
 import * as fse from 'fs-extra';
 import * as os from 'os';
 import * as lodash from 'lodash';
+import log from 'loglevel';
 import * as parser from 'fast-xml-parser';
 import { XMLParser } from 'fast-xml-parser';
 
@@ -155,12 +156,15 @@ export class CommonUtils {
         if (!CommonUtils.isBatchFile(candidate)) {
             return false;
         }
-        return (
-            candidate.includes('"') ||
-            candidate.includes('%') ||
-            candidate.includes('\n') ||
-            candidate.includes('\r')
-        );
+        const unsafe: boolean =
+            candidate.includes('"') || candidate.includes('%') || candidate.includes('\n') || candidate.includes('\r');
+        if (unsafe) {
+            log.warn(
+                "Skipping '%s': cmd.exe cannot safely run a batch file whose path contains a quote, '%' or a line break.",
+                candidate
+            );
+        }
+        return unsafe;
     }
 
     /**
