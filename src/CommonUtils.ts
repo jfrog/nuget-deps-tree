@@ -2,10 +2,10 @@ import * as pathUtils from 'path';
 import * as fse from 'fs-extra';
 import * as os from 'os';
 import * as lodash from 'lodash';
-
-const defaultPathExt: string = '.EXE;.CMD;.BAT;.COM';
 import * as parser from 'fast-xml-parser';
 import { XMLParser } from 'fast-xml-parser';
+
+const defaultPathExt: string = '.EXE;.CMD;.BAT;.COM';
 
 export class CommonUtils {
     /**
@@ -42,7 +42,7 @@ export class CommonUtils {
      */
     public static lookPath(cmd: string): string {
         const pathEnv: string = process.env.PATH || '';
-        const pathExt: string = process.env.PATHEXT || defaultPathExt;
+        const pathExt: string = process.env.PATHEXT || '';
         return CommonUtils.findOnPath(cmd, pathEnv, process.cwd(), CommonUtils.isWindows(), pathExt);
     }
 
@@ -78,7 +78,13 @@ export class CommonUtils {
         return '';
     }
 
-    private static canonical(filePath: string): string {
+    /**
+     * Absolute location of a path after following symlinks.
+     * A path that does not exist is returned absolute, without following links.
+     * @param filePath - path to resolve.
+     * @returns the real path, or the absolute path when it does not exist.
+     */
+    private static realPath(filePath: string): string {
         const resolved: string = pathUtils.resolve(filePath);
         try {
             return fse.realpathSync(resolved);
@@ -136,9 +142,17 @@ export class CommonUtils {
         return true;
     }
 
+    /**
+     * True when the file is a Windows batch script (.cmd or .bat), which only runs through cmd.exe.
+     * @param filePath - path to check.
+     * @returns whether the file is a batch script.
+     */
+    public static isBatchFile(filePath: string): boolean {
+        return ['.cmd', '.bat'].includes(pathUtils.extname(filePath).toLowerCase());
+    }
+
     private static batchPathIsUnsafe(candidate: string): boolean {
-        const extension: string = pathUtils.extname(candidate).toLowerCase();
-        if (extension !== '.cmd' && extension !== '.bat') {
+        if (!CommonUtils.isBatchFile(candidate)) {
             return false;
         }
         return (
@@ -156,7 +170,7 @@ export class CommonUtils {
      * @returns whether the paths are the same location.
      */
     public static isSamePath(first: string, second: string): boolean {
-        return pathUtils.relative(CommonUtils.canonical(first), CommonUtils.canonical(second)) === '';
+        return pathUtils.relative(CommonUtils.realPath(first), CommonUtils.realPath(second)) === '';
     }
 
     /**

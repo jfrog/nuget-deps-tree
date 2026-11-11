@@ -320,7 +320,7 @@ export class PackagesExtractor implements Extractor {
      */
     public runGlobalPackagesCommand(): string {
         const command: ResolvedCommand = this.resolveCommand();
-        const spec: StartSpec = PackagesExtractor.startSpec(
+        const spec: StartSpec = PackagesExtractor.toLaunchCommand(
             command.file,
             command.args,
             CommonUtils.isWindows(),
@@ -351,7 +351,7 @@ export class PackagesExtractor implements Extractor {
      * @param systemRoot - Windows directory used when comSpec is not acceptable.
      * @returns the file and arguments for execFile.
      */
-    public static startSpec(
+    public static toLaunchCommand(
         file: string,
         args: readonly string[],
         windows: boolean,
@@ -359,11 +359,10 @@ export class PackagesExtractor implements Extractor {
         comSpec: string,
         systemRoot: string
     ): StartSpec {
-        const extension: string = pathUtils.extname(file).toLowerCase();
-        if (!windows || (extension !== '.cmd' && extension !== '.bat')) {
+        if (!windows || !CommonUtils.isBatchFile(file)) {
             return { file: file, args: [...args] };
         }
-        const cmdExe: string = PackagesExtractor.pinnedCmdExe(file, cwd, comSpec, systemRoot);
+        const cmdExe: string = PackagesExtractor.resolveCmdExe(file, cwd, comSpec, systemRoot);
         const commandLine: string = [file, ...args].map((arg: string) => PackagesExtractor.quoteCmdArg(arg)).join(' ');
         return {
             file: cmdExe,
@@ -372,18 +371,18 @@ export class PackagesExtractor implements Extractor {
         };
     }
 
-    private static pinnedCmdExe(file: string, cwd: string, comSpec: string, systemRoot: string): string {
-        if (PackagesExtractor.isAcceptableCmd(comSpec, cwd)) {
+    private static resolveCmdExe(file: string, cwd: string, comSpec: string, systemRoot: string): string {
+        if (PackagesExtractor.isTrustedCmdExe(comSpec, cwd)) {
             return comSpec;
         }
         const fallback: string = pathUtils.join(systemRoot, 'System32', 'cmd.exe');
-        if (PackagesExtractor.isAcceptableCmd(fallback, cwd)) {
+        if (PackagesExtractor.isTrustedCmdExe(fallback, cwd)) {
             return fallback;
         }
         throw new Error('Could not find the system command processor to run: ' + file);
     }
 
-    private static isAcceptableCmd(candidate: string, cwd: string): boolean {
+    private static isTrustedCmdExe(candidate: string, cwd: string): boolean {
         if (!pathUtils.isAbsolute(candidate)) {
             return false;
         }

@@ -215,7 +215,7 @@ describe('PackagesExtractor global packages command', () => {
         const exe: string = path.join(root, 'bin', 'nuget.exe');
         touch(exe);
 
-        const spec: ReturnType<typeof PackagesExtractor.startSpec> = PackagesExtractor.startSpec(
+        const spec: ReturnType<typeof PackagesExtractor.toLaunchCommand> = PackagesExtractor.toLaunchCommand(
             exe,
             nugetArgs,
             true,
@@ -237,7 +237,7 @@ describe('PackagesExtractor global packages command', () => {
         touch(batch);
         touch(cmdExe);
 
-        const spec: ReturnType<typeof PackagesExtractor.startSpec> = PackagesExtractor.startSpec(
+        const spec: ReturnType<typeof PackagesExtractor.toLaunchCommand> = PackagesExtractor.toLaunchCommand(
             batch,
             nugetArgs,
             true,
@@ -263,7 +263,7 @@ describe('PackagesExtractor global packages command', () => {
         touch(batch);
         touch(cmdExe);
 
-        const spec: ReturnType<typeof PackagesExtractor.startSpec> = PackagesExtractor.startSpec(
+        const spec: ReturnType<typeof PackagesExtractor.toLaunchCommand> = PackagesExtractor.toLaunchCommand(
             batch,
             nugetArgs,
             true,
@@ -283,7 +283,7 @@ describe('PackagesExtractor global packages command', () => {
         touch(cmdExe);
 
         expect(() =>
-            PackagesExtractor.startSpec(
+            PackagesExtractor.toLaunchCommand(
                 path.join(root, 'bad"name', 'nuget.cmd'),
                 nugetArgs,
                 true,
@@ -301,7 +301,7 @@ describe('PackagesExtractor global packages command', () => {
         touch(systemCmd);
         touch(batch);
 
-        const spec: ReturnType<typeof PackagesExtractor.startSpec> = PackagesExtractor.startSpec(
+        const spec: ReturnType<typeof PackagesExtractor.toLaunchCommand> = PackagesExtractor.toLaunchCommand(
             batch,
             nugetArgs,
             true,
@@ -323,7 +323,7 @@ describe('PackagesExtractor global packages command', () => {
         touch(systemCmd);
         touch(batch);
 
-        const spec: ReturnType<typeof PackagesExtractor.startSpec> = PackagesExtractor.startSpec(
+        const spec: ReturnType<typeof PackagesExtractor.toLaunchCommand> = PackagesExtractor.toLaunchCommand(
             batch,
             nugetArgs,
             true,
