@@ -26,7 +26,7 @@ function writeFile(filePath: string, executable: boolean): void {
 describe('CommonUtils.findOnPath', () => {
     const posixTest = process.platform === 'win32' ? test.skip : test;
 
-    test('returns the client on PATH when the working directory also has one', () => {
+    posixTest('returns the client on PATH when the working directory also has one', () => {
         const root: string = makeRoot();
         const cwd: string = path.join(root, 'work');
         const bin: string = path.join(root, 'bin');
@@ -38,7 +38,7 @@ describe('CommonUtils.findOnPath', () => {
         expect(found).toBe(path.join(bin, 'nuget'));
     });
 
-    test('skips a PATH entry that is the working directory and uses a later client', () => {
+    posixTest('skips a PATH entry that is the working directory and uses a later client', () => {
         const root: string = makeRoot();
         const cwd: string = path.join(root, 'work');
         const bin: string = path.join(root, 'bin');
@@ -50,7 +50,7 @@ describe('CommonUtils.findOnPath', () => {
         expect(found).toBe(path.join(bin, 'nuget'));
     });
 
-    test('skips a dot PATH entry and uses a later client', () => {
+    posixTest('skips a dot PATH entry and uses a later client', () => {
         const root: string = makeRoot();
         const cwd: string = path.join(root, 'work');
         const bin: string = path.join(root, 'bin');
@@ -62,7 +62,7 @@ describe('CommonUtils.findOnPath', () => {
         expect(found).toBe(path.join(bin, 'nuget'));
     });
 
-    test('returns empty when the only client is in the working directory', () => {
+    posixTest('returns empty when the only client is in the working directory', () => {
         const root: string = makeRoot();
         const cwd: string = path.join(root, 'work');
         writeFile(path.join(cwd, 'nuget'), true);
@@ -72,7 +72,7 @@ describe('CommonUtils.findOnPath', () => {
         expect(found).toBe('');
     });
 
-    test('returns empty when PATH is empty', () => {
+    posixTest('returns empty when PATH is empty', () => {
         const cwd: string = makeRoot();
 
         const found: string = CommonUtils.findOnPath('nuget', '', cwd, false, '');
@@ -80,7 +80,7 @@ describe('CommonUtils.findOnPath', () => {
         expect(found).toBe('');
     });
 
-    test('returns the client on PATH when the working directory is a parent of its directory', () => {
+    posixTest('returns the client on PATH when the working directory is a parent of its directory', () => {
         const cwd: string = makeRoot();
         const bin: string = path.join(cwd, 'tools', 'bin');
         writeFile(path.join(bin, 'nuget'), true);
@@ -90,7 +90,7 @@ describe('CommonUtils.findOnPath', () => {
         expect(found).toBe(path.join(bin, 'nuget'));
     });
 
-    test('skips a relative PATH entry that points into the working directory', () => {
+    posixTest('skips a relative PATH entry that points into the working directory', () => {
         const root: string = makeRoot();
         const cwd: string = path.join(root, 'work');
         const bin: string = path.join(root, 'bin');
@@ -125,7 +125,7 @@ describe('CommonUtils.findOnPath', () => {
         }
     });
 
-    test('skips a non-executable name and uses a later executable', () => {
+    posixTest('skips a non-executable name and uses a later executable', () => {
         const root: string = makeRoot();
         const cwd: string = path.join(root, 'work');
         const plain: string = path.join(root, 'plain');
@@ -146,6 +146,16 @@ describe('CommonUtils.findOnPath', () => {
         writeFile(path.join(cwd, 'nuget.exe'), false);
         writeFile(path.join(bin, 'nuget.bat'), false);
         writeFile(path.join(bin, 'nuget.cmd'), false);
+        writeFile(path.join(bin, 'nuget.exe'), false);
+
+        const found: string = CommonUtils.findOnPath('nuget', bin, cwd, true, PATHEXT);
+
+        expect(found).toBe(path.join(bin, 'nuget.exe'));
+    });
+
+    test('on Windows rules returns the client when the working directory is a parent of its directory', () => {
+        const cwd: string = makeRoot();
+        const bin: string = path.join(cwd, 'tools', 'bin');
         writeFile(path.join(bin, 'nuget.exe'), false);
 
         const found: string = CommonUtils.findOnPath('nuget', bin, cwd, true, PATHEXT);
