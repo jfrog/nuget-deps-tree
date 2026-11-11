@@ -163,6 +163,20 @@ describe('CommonUtils.findOnPath', () => {
         expect(found).toBe(path.join(bin, 'nuget.exe'));
     });
 
+    test('on Windows rules skips a PATHEXT type that cannot be started and uses a later client', () => {
+        const root: string = makeRoot();
+        const cwd: string = path.join(root, 'work');
+        const scripts: string = path.join(root, 'scripts');
+        const bin: string = path.join(root, 'bin');
+        fs.mkdirSync(cwd);
+        writeFile(path.join(scripts, 'nuget.js'), false);
+        writeFile(path.join(bin, 'nuget.exe'), false);
+
+        const found: string = CommonUtils.findOnPath('nuget', `${scripts};${bin}`, cwd, true, '.JS;' + PATHEXT);
+
+        expect(found).toBe(path.join(bin, 'nuget.exe'));
+    });
+
     test('on Windows rules returns nuget.cmd from PATH and not from the working directory', () => {
         const root: string = makeRoot();
         const cwd: string = path.join(root, 'work');

@@ -6,7 +6,7 @@ import log from 'loglevel';
 import * as parser from 'fast-xml-parser';
 import { XMLParser } from 'fast-xml-parser';
 
-const defaultPathExt: string = '.EXE;.CMD;.BAT;.COM';
+const launchableExtensions: string[] = ['.exe', '.cmd', '.bat', '.com'];
 
 export class CommonUtils {
     /**
@@ -98,16 +98,13 @@ export class CommonUtils {
         if (!windows) {
             return [''];
         }
-        const raw: string = pathExt || defaultPathExt;
-        const suffixes: string[] = raw
+        const fromPathExt: string[] = pathExt
             .split(';')
-            .filter((ext: string) => ext !== '')
-            .map((ext: string) => ext.toLowerCase());
+            .map((ext: string) => ext.toLowerCase())
+            .filter((ext: string) => launchableExtensions.includes(ext));
+        const suffixes: string[] = fromPathExt.length > 0 ? fromPathExt : launchableExtensions;
         if (cmd.includes('.')) {
             return ['', ...suffixes];
-        }
-        if (suffixes.length === 0) {
-            return [''];
         }
         return suffixes;
     }
