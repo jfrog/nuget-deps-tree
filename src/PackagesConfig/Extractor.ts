@@ -393,7 +393,7 @@ export class PackagesExtractor implements Extractor {
         if (!fse.pathExistsSync(candidate)) {
             return false;
         }
-        return !CommonUtils.livesIn(cwd, candidate);
+        return !CommonUtils.isSamePath(pathUtils.dirname(candidate), cwd);
     }
 
     private static quoteCmdArg(arg: string): string {
@@ -402,8 +402,7 @@ export class PackagesExtractor implements Extractor {
                 'Refusing to run a batch file with an unsafe quote or line break in its path or arguments: ' + arg
             );
         }
-        const escaped: string = arg.replace(/%/g, '%%');
-        return '"' + escaped + '"';
+        return '"' + arg + '"';
     }
 
     /**
@@ -425,13 +424,6 @@ export class PackagesExtractor implements Extractor {
             throw new Error('could neither find nuget client path, nor mono and nuget executable path');
         }
         return { file: monoPath, args: [nugetExePath, ...nugetArgs] };
-    }
-
-    /**
-     * Get path of executable suitable for running the command, according to the operating system.
-     */
-    public getExecutablePath(): string {
-        return this.resolveCommand().file;
     }
 }
 

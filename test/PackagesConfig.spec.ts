@@ -294,6 +294,25 @@ describe('PackagesExtractor global packages command', () => {
         ).toThrow('Refusing to run a batch file with an unsafe quote or line break in its path or arguments: ');
     });
 
+    test('uses the system command processor when the working directory is a parent of it', () => {
+        const root: string = makeRoot();
+        const systemCmd: string = path.join(root, 'Windows', 'System32', 'cmd.exe');
+        const batch: string = path.join(root, 'bin', 'nuget.cmd');
+        touch(systemCmd);
+        touch(batch);
+
+        const spec: ReturnType<typeof PackagesExtractor.startSpec> = PackagesExtractor.startSpec(
+            batch,
+            nugetArgs,
+            true,
+            root,
+            systemCmd,
+            path.join(root, 'Windows')
+        );
+
+        expect(spec.file).toBe(systemCmd);
+    });
+
     test('does not use a command processor that lives in the working directory', () => {
         const root: string = makeRoot();
         const cwd: string = path.join(root, 'work');

@@ -47,36 +47,33 @@ export class CommonUtils {
     }
 
     /**
-     * Find cmd on pathEnv, never inside cwd.
+     * Find cmd in the absolute entries of pathEnv. Relative and empty entries, and the working directory itself, are skipped.
      * @param cmd - executable name.
      * @param pathEnv - path entries separated by the platform delimiter for the selected rules.
-     * @param cwd - directory that must not supply the executable.
+     * @param cwd - working directory, which never supplies the executable.
      * @param windows - whether Windows suffix rules apply.
      * @param pathExt - Windows PATHEXT value.
      * @returns path to executable, or empty when none is acceptable.
      */
     public static findOnPath(cmd: string, pathEnv: string, cwd: string, windows: boolean, pathExt: string): string {
         const delimiter: string = windows ? ';' : ':';
-        const resolvedCwd: string = CommonUtils.canonical(cwd);
         const suffixes: string[] = CommonUtils.suffixesFor(cmd, windows, pathExt);
-        const entries: string[] = pathEnv.split(delimiter);
-        for (const entry of entries) {
+        for (const entry of pathEnv.split(delimiter)) {
             let raw: string = entry;
             if (windows && raw.length >= 2 && raw.startsWith('"') && raw.endsWith('"')) {
                 raw = raw.slice(1, -1);
             }
-            const dir: string = pathUtils.resolve(cwd, raw);
-            if (CommonUtils.isInside(resolvedCwd, CommonUtils.canonical(dir))) {
+            if (!pathUtils.isAbsolute(raw)) {
+                continue;
+            }
+            const dir: string = pathUtils.resolve(raw);
+            if (CommonUtils.isSamePath(dir, cwd)) {
                 continue;
             }
             const match: string = CommonUtils.matchInDir(dir, cmd, suffixes, windows);
-            if (match === '') {
-                continue;
+            if (match !== '') {
+                return match;
             }
-            if (CommonUtils.isInside(resolvedCwd, CommonUtils.canonical(match))) {
-                continue;
-            }
-            return match;
         }
         return '';
     }
@@ -95,7 +92,10 @@ export class CommonUtils {
             return [''];
         }
         const raw: string = pathExt || defaultPathExt;
-        const suffixes: string[] = raw.split(';').filter((ext: string) => ext !== '');
+        const suffixes: string[] = raw
+            .split(';')
+            .filter((ext: string) => ext !== '')
+            .map((ext: string) => ext.toLowerCase());
         if (cmd.includes('.')) {
             return ['', ...suffixes];
         }
@@ -106,28 +106,11 @@ export class CommonUtils {
     }
 
     private static matchInDir(dir: string, cmd: string, suffixes: string[], windows: boolean): string {
-        let names: string[] = [];
-        try {
-            names = fse.readdirSync(dir);
-        } catch (error) {
-            return '';
-        }
         for (const suffix of suffixes) {
-            const wanted: string = cmd + suffix;
-            const found: string | undefined = names.find((name: string) =>
-                windows ? name.toLowerCase() === wanted.toLowerCase() : name === wanted
-            );
-            if (found === undefined) {
-                continue;
+            const candidate: string = pathUtils.join(dir, cmd + suffix);
+            if (CommonUtils.isRunnableFile(candidate, windows) && !CommonUtils.batchPathIsUnsafe(candidate)) {
+                return candidate;
             }
-            const candidate: string = pathUtils.join(dir, found);
-            if (!CommonUtils.isRunnableFile(candidate, windows)) {
-                continue;
-            }
-            if (CommonUtils.batchPathIsUnsafe(candidate)) {
-                continue;
-            }
-            return candidate;
         }
         return '';
     }
@@ -167,22 +150,13 @@ export class CommonUtils {
     }
 
     /**
-     * True when child is parent, or a file or directory inside parent.
-     * Links are resolved before the comparison.
-     * @param parent - directory that must not contain child.
-     * @param child - path to test.
-     * @returns whether child lives in parent.
+     * True when both paths point to the same location. Links are resolved before the comparison.
+     * @param first - path to compare.
+     * @param second - path to compare.
+     * @returns whether the paths are the same location.
      */
-    public static livesIn(parent: string, child: string): boolean {
-        return CommonUtils.isInside(CommonUtils.canonical(parent), CommonUtils.canonical(child));
-    }
-
-    private static isInside(parent: string, child: string): boolean {
-        const relative: string = pathUtils.relative(pathUtils.resolve(parent), pathUtils.resolve(child));
-        if (relative === '') {
-            return true;
-        }
-        return relative !== '..' && !relative.startsWith('..' + pathUtils.sep) && !pathUtils.isAbsolute(relative);
+    public static isSamePath(first: string, second: string): boolean {
+        return pathUtils.relative(CommonUtils.canonical(first), CommonUtils.canonical(second)) === '';
     }
 
     /**

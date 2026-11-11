@@ -80,33 +80,49 @@ describe('CommonUtils.findOnPath', () => {
         expect(found).toBe('');
     });
 
-    test('skips a PATH entry inside the working directory', () => {
-        const root: string = makeRoot();
-        const cwd: string = path.join(root, 'work');
-        const nested: string = path.join(cwd, 'tools');
-        const bin: string = path.join(root, 'bin');
-        writeFile(path.join(nested, 'nuget'), true);
+    test('returns the client on PATH when the working directory is a parent of its directory', () => {
+        const cwd: string = makeRoot();
+        const bin: string = path.join(cwd, 'tools', 'bin');
         writeFile(path.join(bin, 'nuget'), true);
 
-        const found: string = CommonUtils.findOnPath('nuget', `${nested}${path.delimiter}${bin}`, cwd, false, '');
+        const found: string = CommonUtils.findOnPath('nuget', bin, cwd, false, '');
 
         expect(found).toBe(path.join(bin, 'nuget'));
     });
 
-    test('skips a PATH file that is a symlink into the working directory', () => {
+    test('skips a relative PATH entry that points into the working directory', () => {
         const root: string = makeRoot();
         const cwd: string = path.join(root, 'work');
-        const planted: string = path.join(cwd, 'nuget');
         const bin: string = path.join(root, 'bin');
-        const later: string = path.join(root, 'later');
-        writeFile(planted, true);
-        fs.mkdirSync(bin);
-        fs.symlinkSync(planted, path.join(bin, 'nuget'));
-        writeFile(path.join(later, 'nuget'), true);
+        writeFile(path.join(cwd, 'tools', 'nuget'), true);
+        writeFile(path.join(bin, 'nuget'), true);
+        const previousCwd: string = process.cwd();
+        process.chdir(cwd);
 
-        const found: string = CommonUtils.findOnPath('nuget', `${bin}${path.delimiter}${later}`, cwd, false, '');
+        try {
+            const found: string = CommonUtils.findOnPath('nuget', `tools${path.delimiter}${bin}`, cwd, false, '');
 
-        expect(found).toBe(path.join(later, 'nuget'));
+            expect(found).toBe(path.join(bin, 'nuget'));
+        } finally {
+            process.chdir(previousCwd);
+        }
+    });
+
+    posixTest('returns the client from a PATH directory that can be searched but not listed', () => {
+        const root: string = makeRoot();
+        const cwd: string = path.join(root, 'work');
+        const bin: string = path.join(root, 'bin');
+        fs.mkdirSync(cwd);
+        writeFile(path.join(bin, 'nuget'), true);
+        fs.chmodSync(bin, 0o311);
+
+        try {
+            const found: string = CommonUtils.findOnPath('nuget', bin, cwd, false, '');
+
+            expect(found).toBe(path.join(bin, 'nuget'));
+        } finally {
+            fs.chmodSync(bin, 0o755);
+        }
     });
 
     test('skips a non-executable name and uses a later executable', () => {
