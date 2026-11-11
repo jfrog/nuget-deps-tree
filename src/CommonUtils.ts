@@ -56,7 +56,7 @@ export class CommonUtils {
      * @returns path to executable, or empty when none is acceptable.
      */
     public static findOnPath(cmd: string, pathEnv: string, cwd: string, windows: boolean, pathExt: string): string {
-        const delimiter: string = windows ? ';' : ':';
+        const delimiter: string = windows ? pathUtils.win32.delimiter : pathUtils.posix.delimiter;
         const suffixes: string[] = CommonUtils.suffixesFor(cmd, windows, pathExt);
         for (const entry of pathEnv.split(delimiter)) {
             let raw: string = entry;
