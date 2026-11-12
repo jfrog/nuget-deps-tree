@@ -9,6 +9,11 @@ import { Dependency } from '../Structure/Dependency';
 import { NugetPackage } from './NugetPackage';
 
 const packagesFileName: string = 'packages.config';
+
+type ResolvedCommand = { file: string; args: string[] };
+
+type StartSpec = { file: string; args: string[]; windowsVerbatimArguments?: boolean };
+
 export class PackagesExtractor implements Extractor {
     constructor(
         private _allDependencies: CaseInsensitiveMap<DependencyDetails>,
@@ -314,45 +319,110 @@ export class PackagesExtractor implements Extractor {
      * @returns command output.
      */
     public runGlobalPackagesCommand(): string {
-        let cmd: string = this.getExecutablePath();
-        cmd += ' locals global-packages -list';
-        let output: string = '';
+        const command: ResolvedCommand = this.resolveCommand();
+        const spec: StartSpec = PackagesExtractor.toLaunchCommand(
+            command.file,
+            command.args,
+            CommonUtils.isWindows(),
+            process.cwd(),
+            process.env.ComSpec || '',
+            process.env.SystemRoot || ''
+        );
+        const shown: string = [spec.file, ...spec.args].join(' ');
+        const options: { maxBuffer: number; windowsVerbatimArguments?: boolean } = { maxBuffer: 10485760 };
+        if (spec.windowsVerbatimArguments === true) {
+            options.windowsVerbatimArguments = true;
+        }
         try {
-            output = exec.execSync(cmd, { maxBuffer: 10485760 }).toString();
+            return exec.execFileSync(spec.file, spec.args, options).toString();
         } catch (error) {
-            throw new Error("Running '" + cmd + "' failed with error: " + error);
+            throw new Error("Running '" + shown + "' failed with error: " + error);
         }
-        return output;
     }
 
     /**
-     * Get path of executable suitable for running the command, according to the operating system.
+     * How to start a resolved client. Executables start directly.
+     * Windows batch files start through the system command processor, never one found on PATH.
+     * @param file - resolved client path.
+     * @param args - arguments for the client.
+     * @param windows - whether Windows batch rules apply.
+     * @param cwd - working directory that must not supply the command processor.
+     * @param comSpec - candidate command processor path.
+     * @param systemRoot - Windows directory used when comSpec is not acceptable.
+     * @returns the file and arguments for execFile.
      */
-    public getExecutablePath(): string {
-        if (CommonUtils.isWindows()) {
-            return CommonUtils.lookPath('nuget');
+    public static toLaunchCommand(
+        file: string,
+        args: readonly string[],
+        windows: boolean,
+        cwd: string,
+        comSpec: string,
+        systemRoot: string
+    ): StartSpec {
+        if (!windows || !CommonUtils.isBatchFile(file)) {
+            return { file: file, args: [...args] };
         }
-        return this.getNonWindowsExecutablePath();
+        const cmdExe: string = PackagesExtractor.resolveCmdExe(file, cwd, comSpec, systemRoot);
+        const commandLine: string = [file, ...args].map((arg: string) => PackagesExtractor.quoteCmdArg(arg)).join(' ');
+        return {
+            file: cmdExe,
+            args: ['/d', '/s', '/c', '"' + commandLine + '"'],
+            windowsVerbatimArguments: true,
+        };
+    }
+
+    private static resolveCmdExe(file: string, cwd: string, comSpec: string, systemRoot: string): string {
+        if (PackagesExtractor.isTrustedCmdExe(comSpec, cwd)) {
+            return comSpec;
+        }
+        const fallback: string = pathUtils.join(systemRoot, 'System32', 'cmd.exe');
+        if (PackagesExtractor.isTrustedCmdExe(fallback, cwd)) {
+            return fallback;
+        }
+        throw new Error('Could not find the system command processor to run: ' + file);
+    }
+
+    private static isTrustedCmdExe(candidate: string, cwd: string): boolean {
+        if (!pathUtils.isAbsolute(candidate)) {
+            return false;
+        }
+        if (pathUtils.basename(candidate).toLowerCase() !== 'cmd.exe') {
+            return false;
+        }
+        if (!fse.pathExistsSync(candidate)) {
+            return false;
+        }
+        return !CommonUtils.isSamePath(pathUtils.dirname(candidate), cwd);
+    }
+
+    private static quoteCmdArg(arg: string): string {
+        if (arg.includes('"') || arg.includes('\n') || arg.includes('\r')) {
+            throw new Error(
+                'Refusing to run a batch file with an unsafe quote or line break in its path or arguments: ' + arg
+            );
+        }
+        return '"' + arg + '"';
     }
 
     /**
-     * NuGet can be run on non Windows OS in one of the following ways:
-     * 1. using nuget client
-     * 2. using Mono
+     * Program to start, and the arguments that follow it.
+     * The program is never taken from the working directory.
      */
-    public getNonWindowsExecutablePath(): string {
+    private resolveCommand(): ResolvedCommand {
+        const nugetArgs: string[] = ['locals', 'global-packages', '-list'];
         const nugetPath: string = CommonUtils.lookPath('nuget');
         if (nugetPath) {
-            return nugetPath;
+            return { file: nugetPath, args: nugetArgs };
         }
-        // If 'nuget' wasn't found, we Will try to run nuget using mono.
-        // Mono's first argument is nuget.exe's path, so we will look for both mono and nuget.exe in PATH.
+        if (CommonUtils.isWindows()) {
+            throw new Error('could neither find nuget client path, nor mono and nuget executable path');
+        }
         const monoPath: string = CommonUtils.lookPath('mono');
         const nugetExePath: string = CommonUtils.lookPath('nuget.exe');
         if (!monoPath || !nugetExePath) {
             throw new Error('could neither find nuget client path, nor mono and nuget executable path');
         }
-        return monoPath + ' ' + nugetExePath;
+        return { file: monoPath, args: [nugetExePath, ...nugetArgs] };
     }
 }
 

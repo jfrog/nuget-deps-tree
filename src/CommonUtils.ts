@@ -1,10 +1,12 @@
 import * as pathUtils from 'path';
 import * as fse from 'fs-extra';
 import * as os from 'os';
-import which from 'which';
 import * as lodash from 'lodash';
+import log from 'loglevel';
 import * as parser from 'fast-xml-parser';
 import { XMLParser } from 'fast-xml-parser';
+
+const launchableExtensions: string[] = ['.exe', '.cmd', '.bat', '.com'];
 
 export class CommonUtils {
     /**
@@ -40,7 +42,136 @@ export class CommonUtils {
      * @returns path to executable.
      */
     public static lookPath(cmd: string): string {
-        return which.sync(cmd, { nothrow: true }) || '';
+        const pathEnv: string = process.env.PATH || '';
+        const pathExt: string = process.env.PATHEXT || '';
+        return CommonUtils.findOnPath(cmd, pathEnv, process.cwd(), CommonUtils.isWindows(), pathExt);
+    }
+
+    /**
+     * Find cmd in the absolute entries of pathEnv. Relative and empty entries, and the working directory itself, are skipped.
+     * @param cmd - executable name.
+     * @param pathEnv - path entries separated by the platform delimiter for the selected rules.
+     * @param cwd - working directory, which never supplies the executable.
+     * @param windows - whether Windows suffix rules apply.
+     * @param pathExt - Windows PATHEXT value.
+     * @returns path to executable, or empty when none is acceptable.
+     */
+    public static findOnPath(cmd: string, pathEnv: string, cwd: string, windows: boolean, pathExt: string): string {
+        const delimiter: string = windows ? pathUtils.win32.delimiter : pathUtils.posix.delimiter;
+        const suffixes: string[] = CommonUtils.suffixesFor(cmd, windows, pathExt);
+        for (const entry of pathEnv.split(delimiter)) {
+            let raw: string = entry;
+            if (windows && raw.length >= 2 && raw.startsWith('"') && raw.endsWith('"')) {
+                raw = raw.slice(1, -1);
+            }
+            if (!pathUtils.isAbsolute(raw)) {
+                continue;
+            }
+            const dir: string = pathUtils.resolve(raw);
+            if (CommonUtils.isSamePath(dir, cwd)) {
+                continue;
+            }
+            const match: string = CommonUtils.matchInDir(dir, cmd, suffixes, windows);
+            if (match !== '') {
+                return match;
+            }
+        }
+        return '';
+    }
+
+    /**
+     * Absolute location of a path after following symlinks.
+     * A path that does not exist is returned absolute, without following links.
+     * @param filePath - path to resolve.
+     * @returns the real path, or the absolute path when it does not exist.
+     */
+    private static realPath(filePath: string): string {
+        const resolved: string = pathUtils.resolve(filePath);
+        try {
+            return fse.realpathSync(resolved);
+        } catch (error) {
+            return resolved;
+        }
+    }
+
+    private static suffixesFor(cmd: string, windows: boolean, pathExt: string): string[] {
+        if (!windows) {
+            return [''];
+        }
+        const fromPathExt: string[] = pathExt
+            .split(';')
+            .map((ext: string) => ext.toLowerCase())
+            .filter((ext: string) => launchableExtensions.includes(ext));
+        const suffixes: string[] = fromPathExt.length > 0 ? fromPathExt : launchableExtensions;
+        if (cmd.includes('.')) {
+            return ['', ...suffixes];
+        }
+        return suffixes;
+    }
+
+    private static matchInDir(dir: string, cmd: string, suffixes: string[], windows: boolean): string {
+        for (const suffix of suffixes) {
+            const candidate: string = pathUtils.join(dir, cmd + suffix);
+            if (CommonUtils.isRunnableFile(candidate, windows) && !CommonUtils.batchPathIsUnsafe(candidate)) {
+                return candidate;
+            }
+        }
+        return '';
+    }
+
+    private static isRunnableFile(candidate: string, windows: boolean): boolean {
+        let stat: fse.Stats;
+        try {
+            stat = fse.statSync(candidate);
+        } catch (error) {
+            return false;
+        }
+        if (!stat.isFile()) {
+            return false;
+        }
+        if (windows) {
+            return true;
+        }
+        try {
+            fse.accessSync(candidate, fse.constants.X_OK);
+        } catch (error) {
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * True when the file is a Windows batch script (.cmd or .bat), which only runs through cmd.exe.
+     * @param filePath - path to check.
+     * @returns whether the file is a batch script.
+     */
+    public static isBatchFile(filePath: string): boolean {
+        return ['.cmd', '.bat'].includes(pathUtils.extname(filePath).toLowerCase());
+    }
+
+    private static batchPathIsUnsafe(candidate: string): boolean {
+        if (!CommonUtils.isBatchFile(candidate)) {
+            return false;
+        }
+        const unsafe: boolean =
+            candidate.includes('"') || candidate.includes('%') || candidate.includes('\n') || candidate.includes('\r');
+        if (unsafe) {
+            log.warn(
+                "Skipping '%s': cmd.exe cannot safely run a batch file whose path contains a quote, '%' or a line break.",
+                candidate
+            );
+        }
+        return unsafe;
+    }
+
+    /**
+     * True when both paths point to the same location. Links are resolved before the comparison.
+     * @param first - path to compare.
+     * @param second - path to compare.
+     * @returns whether the paths are the same location.
+     */
+    public static isSamePath(first: string, second: string): boolean {
+        return pathUtils.relative(CommonUtils.realPath(first), CommonUtils.realPath(second)) === '';
     }
 
     /**
