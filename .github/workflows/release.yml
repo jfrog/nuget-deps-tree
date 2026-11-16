@@ -36,7 +36,7 @@ jobs:
             - run: npm version "$VERSION" --allow-same-version --tag-version-prefix=""
             - run: npm pack
             - name: Check that npm accepts the package
-              run: npm publish nuget-deps-tree-*.tgz --dry-run $TAG_ARG
+              run: npm publish nuget-deps-tree-*.tgz --access public --dry-run $TAG_ARG
             - uses: actions/upload-artifact@v7
               with:
                   name: package
@@ -61,4 +61,4 @@ jobs:
             - uses: actions/download-artifact@v8
               with:
                   name: package
-            - run: npm publish nuget-deps-tree-*.tgz $TAG_ARG $DRY_RUN_ARG
+            - run: npm publish nuget-deps-tree-*.tgz --access public $TAG_ARG $DRY_RUN_ARG
