@@ -15,11 +15,6 @@ on:
                 type: boolean
                 default: false
 
-env:
-    VERSION: ${{ inputs.version }}
-    TAG_ARG: ${{ inputs.dist-tag != 'latest' && format('--tag={0}', inputs.dist-tag) || '' }}
-    DRY_RUN_ARG: ${{ inputs.dry-run && '--dry-run' || '' }}
-
 jobs:
     build:
         if: github.ref_type == 'branch'
@@ -34,9 +29,13 @@ jobs:
             - run: npm ci
             - run: git config user.name "github-actions[bot]" && git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
             - run: npm version "$VERSION" --allow-same-version --tag-version-prefix=""
+              env:
+                  VERSION: ${{ inputs.version }}
             - run: npm pack
             - name: Check that npm accepts the package
               run: npm publish nuget-deps-tree-*.tgz --access public --dry-run $TAG_ARG
+              env:
+                  TAG_ARG: ${{ inputs.dist-tag != 'latest' && format('--tag={0}', inputs.dist-tag) || '' }}
             - uses: actions/upload-artifact@v7
               with:
                   name: package
@@ -46,6 +45,7 @@ jobs:
             - if: ${{ !inputs.dry-run }}
               run: gh release create "$VERSION" --verify-tag --generate-notes ${{ contains(inputs.version, '-') && '--prerelease' || '' }}
               env:
+                  VERSION: ${{ inputs.version }}
                   GH_TOKEN: ${{ github.token }}
 
     publish:
@@ -60,4 +60,6 @@ jobs:
             - uses: actions/download-artifact@v8
               with:
                   name: package
-            - run: npm publish nuget-deps-tree-*.tgz --access public $TAG_ARG $DRY_RUN_ARG
+            - run: npm publish nuget-deps-tree-*.tgz --access public $TAG_ARG ${{ inputs.dry-run && '--dry-run' || '' }}
+              env:
+                  TAG_ARG: ${{ inputs.dist-tag != 'latest' && format('--tag={0}', inputs.dist-tag) || '' }}
