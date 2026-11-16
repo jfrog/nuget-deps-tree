@@ -1,35 +1,55 @@
 name: Release
 
 on:
-    release:
-        types: [published]
+    workflow_dispatch:
+        inputs:
+            version:
+                description: 'Version to release, for example 0.4.5'
+                required: true
+            dry-run:
+                description: 'Build and check everything, but push and publish nothing'
+                type: boolean
+                default: false
+
 jobs:
-    release:
+    build:
         runs-on: ubuntu-latest
+        permissions:
+            contents: write
         steps:
-            - uses: actions/checkout@v1
-
-            - name: Start FastCI Optimization
-              uses: jfrog-fastci/fastci@main
+            - uses: actions/checkout@v7
+            - uses: actions/setup-node@v7
               with:
-                github_token: ${{ secrets.GITHUB_TOKEN }}
-                fastci_otel_token: ${{ secrets.FASTCI_TOKEN }}
-            
-            - name: Setup NodeJS
-              uses: actions/setup-node@v4
-              with:
-                node-version: '18'
-                registry-url: 'https://registry.npmjs.org'
-
-            - name: Install
-              run: npm i
-            - name: Update version
-              run: echo ${{ github.ref }} | cut -c 11- | xargs npm version --no-git-tag-version --allow-same-version
-            - name: Push changes
-              uses: ad-m/github-push-action@master
-              with:
-                  github_token: ${{ secrets.GITHUB_TOKEN }}
-            - name: Publish
-              run: npm publish --access public
+                  node-version: '24'
+            - run: npm ci
+            - run: git config user.name "github-actions[bot]" && git config user.email "github-actions[bot]@users.noreply.github.com"
+            - run: npm version "$VERSION" --allow-same-version --tag-version-prefix=""
               env:
-                  NODE_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
+                  VERSION: ${{ inputs.version }}
+            - run: npm pack
+            - name: Check that npm accepts the package
+              run: npm publish nuget-deps-tree-*.tgz --access public --dry-run
+            - uses: actions/upload-artifact@v7
+              with:
+                  name: package
+                  path: nuget-deps-tree-*.tgz
+            - if: ${{ !inputs.dry-run }}
+              run: git push --atomic --follow-tags
+            - if: ${{ !inputs.dry-run }}
+              run: gh release create "$(git describe --tags --exact-match)" --generate-notes
+              env:
+                  GH_TOKEN: ${{ github.token }}
+
+    publish:
+        needs: build
+        runs-on: ubuntu-latest
+        permissions:
+            id-token: write
+        steps:
+            - uses: actions/setup-node@v7
+              with:
+                  node-version: '24'
+            - uses: actions/download-artifact@v8
+              with:
+                  name: package
+            - run: npm publish nuget-deps-tree-*.tgz --access public --dry-run=${{ inputs.dry-run }}
