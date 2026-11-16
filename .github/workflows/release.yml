@@ -1,37 +1,122 @@
 name: Release
 
 on:
-    release:
-        types: [published]
+    workflow_dispatch:
+        inputs:
+            version:
+                description: 'Version to release, for example 0.4.5 or 0.5.0-alpha.1'
+                required: true
+                type: string
+            dist-tag:
+                description: 'npm dist-tag. Keep latest for a regular release. Use next for a pre-release, or a line tag such as v0.4 for a hotfix of an older version'
+                required: true
+                default: latest
+                type: string
+            dry-run:
+                description: 'Run every step without pushing, creating the GitHub release or publishing to npm'
+                type: boolean
+                default: false
+
+concurrency:
+    group: release
+    cancel-in-progress: false
+
+env:
+    VERSION: ${{ inputs.version }}
+    DIST_TAG: ${{ inputs.dist-tag }}
+    DRY_RUN: ${{ inputs.dry-run }}
+
 jobs:
     build:
         runs-on: ubuntu-latest
         permissions:
             contents: write
         steps:
-            - uses: actions/checkout@v1
+            - uses: actions/checkout@v7
+              with:
+                  fetch-depth: 0
 
             - name: Setup NodeJS
-              uses: actions/setup-node@v4
+              uses: actions/setup-node@v7
               with:
-                node-version: '24'
+                  node-version: '24'
+
+            - name: Validate version
+              run: |
+                  if [ "$GITHUB_REF_TYPE" != "branch" ]; then
+                      echo "::error::Run the release from a branch, not from $GITHUB_REF_TYPE $GITHUB_REF_NAME"
+                      exit 1
+                  fi
+                  if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
+                      echo "::error::'$VERSION' is not a version such as 1.2.3 or 1.2.3-alpha.1"
+                      exit 1
+                  fi
+                  if git rev-parse -q --verify "refs/tags/$VERSION" > /dev/null; then
+                      echo "::error::Tag $VERSION already exists"
+                      exit 1
+                  fi
+
+            - name: Check npm
+              run: |
+                  PUBLISHED_VERSIONS="$(npm view nuget-deps-tree versions --json)"
+                  if jq -e --arg version "$VERSION" 'any(.[]; . == $version)' <<< "$PUBLISHED_VERSIONS" > /dev/null; then
+                      echo "::error::nuget-deps-tree@$VERSION is already published"
+                      exit 1
+                  fi
+                  if [ "$DIST_TAG" != "latest" ]; then
+                      exit 0
+                  fi
+                  if [[ "$VERSION" == *-* ]]; then
+                      echo "::error::$VERSION is a pre-release. Publish it under a dist-tag such as next"
+                      exit 1
+                  fi
+                  LATEST="$(npm view nuget-deps-tree dist-tags.latest)"
+                  HIGHEST="$(printf '%s\n%s\n' "$LATEST" "$VERSION" | sort -V | tail -n 1)"
+                  if [ "$HIGHEST" != "$VERSION" ]; then
+                      echo "::error::$VERSION is lower than the current latest $LATEST. Publish it under a dist-tag such as v${VERSION%.*}"
+                      exit 1
+                  fi
 
             - name: Install
-              run: npm i
-            - name: Update version
-              run: echo ${{ github.ref }} | cut -c 11- | xargs npm version --no-git-tag-version --allow-same-version
-            - name: Push changes
-              uses: ad-m/github-push-action@master
-              with:
-                  github_token: ${{ secrets.GITHUB_TOKEN }}
+              run: npm ci
+
+            - name: Set version
+              run: |
+                  npm version "$VERSION" --no-git-tag-version --allow-same-version
+                  git config user.name "github-actions[bot]"
+                  git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+                  if ! git diff --quiet; then
+                      git commit -am "$VERSION"
+                  fi
+                  git tag "$VERSION"
+
             - name: Pack
               run: npm pack
+
             - name: Upload package
-              uses: actions/upload-artifact@v4
+              uses: actions/upload-artifact@v7
               with:
                   name: package
                   path: nuget-deps-tree-*.tgz
                   if-no-files-found: error
+
+            - name: Push version commit and tag
+              if: env.DRY_RUN != 'true'
+              run: git push --atomic origin "HEAD:refs/heads/$GITHUB_REF_NAME" "refs/tags/$VERSION"
+
+            - name: Create GitHub release
+              if: env.DRY_RUN != 'true'
+              env:
+                  GH_TOKEN: ${{ github.token }}
+              run: |
+                  FLAGS=(--verify-tag --generate-notes --title "$VERSION")
+                  if [[ "$VERSION" == *-* ]]; then
+                      FLAGS+=(--prerelease)
+                  fi
+                  if [ "$DIST_TAG" != "latest" ]; then
+                      FLAGS+=(--latest=false)
+                  fi
+                  gh release create "$VERSION" "${FLAGS[@]}"
 
     publish:
         needs: build
@@ -40,14 +125,23 @@ jobs:
             id-token: write
         steps:
             - name: Setup NodeJS
-              uses: actions/setup-node@v4
+              uses: actions/setup-node@v7
               with:
-                node-version: '24'
-                registry-url: 'https://registry.npmjs.org'
+                  node-version: '24'
+                  registry-url: 'https://registry.npmjs.org'
 
             - name: Download package
-              uses: actions/download-artifact@v4
+              uses: actions/download-artifact@v8
               with:
                   name: package
+
             - name: Publish
-              run: npm publish nuget-deps-tree-*.tgz --access public
+              run: |
+                  FLAGS=(--access public --loglevel verbose)
+                  if [ "$DIST_TAG" != "latest" ]; then
+                      FLAGS+=(--tag "$DIST_TAG")
+                  fi
+                  if [ "$DRY_RUN" = "true" ]; then
+                      FLAGS+=(--dry-run)
+                  fi
+                  npm publish nuget-deps-tree-*.tgz "${FLAGS[@]}"
