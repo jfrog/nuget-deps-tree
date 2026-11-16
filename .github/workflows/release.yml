@@ -43,7 +43,7 @@ jobs:
             - if: ${{ !inputs.dry-run }}
               run: git push --atomic --follow-tags
             - if: ${{ !inputs.dry-run }}
-              run: gh release create "$VERSION" --generate-notes ${{ contains(inputs.version, '-') && '--prerelease' || '' }}
+              run: gh release create "$VERSION" --generate-notes --prerelease=${{ contains(inputs.version, '-') }}
               env:
                   VERSION: ${{ inputs.version }}
                   GH_TOKEN: ${{ github.token }}
@@ -60,6 +60,6 @@ jobs:
             - uses: actions/download-artifact@v8
               with:
                   name: package
-            - run: npm publish nuget-deps-tree-*.tgz --access public $TAG_ARG ${{ inputs.dry-run && '--dry-run' || '' }}
+            - run: npm publish nuget-deps-tree-*.tgz --access public $TAG_ARG --dry-run=${{ inputs.dry-run }}
               env:
                   TAG_ARG: ${{ inputs.dist-tag != 'latest' && format('--tag={0}', inputs.dist-tag) || '' }}
