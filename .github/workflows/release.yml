@@ -6,6 +6,9 @@ on:
 jobs:
     release:
         runs-on: ubuntu-latest
+        permissions:
+            contents: write
+            id-token: write
         steps:
             - uses: actions/checkout@v1
 
@@ -18,7 +21,7 @@ jobs:
             - name: Setup NodeJS
               uses: actions/setup-node@v4
               with:
-                node-version: '18'
+                node-version: '24'
                 registry-url: 'https://registry.npmjs.org'
 
             - name: Install
@@ -31,5 +34,3 @@ jobs:
                   github_token: ${{ secrets.GITHUB_TOKEN }}
             - name: Publish
               run: npm publish --access public
-              env:
-                  NODE_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
