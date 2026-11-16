@@ -41,9 +41,9 @@ jobs:
                   name: package
                   path: nuget-deps-tree-*.tgz
             - if: ${{ !inputs.dry-run }}
-              run: git push --atomic --follow-tags origin "HEAD:$GITHUB_REF_NAME"
+              run: git push --atomic --follow-tags
             - if: ${{ !inputs.dry-run }}
-              run: gh release create "$VERSION" --verify-tag --generate-notes ${{ contains(inputs.version, '-') && '--prerelease' || '' }}
+              run: gh release create "$VERSION" --generate-notes ${{ contains(inputs.version, '-') && '--prerelease' || '' }}
               env:
                   VERSION: ${{ inputs.version }}
                   GH_TOKEN: ${{ github.token }}
