@@ -4,12 +4,8 @@ on:
     workflow_dispatch:
         inputs:
             version:
-                description: 'Version to release, for example 0.4.5 or 0.5.0-alpha.1'
+                description: 'Version to release, for example 0.4.5'
                 required: true
-            dist-tag:
-                description: 'npm dist-tag: latest, next for a pre-release, or e.g. release-0.4 for a hotfix of an older line'
-                required: true
-                default: latest
             dry-run:
                 description: 'Build and check everything, but push and publish nothing'
                 type: boolean
@@ -17,7 +13,6 @@ on:
 
 jobs:
     build:
-        if: github.ref_type == 'branch'
         runs-on: ubuntu-latest
         permissions:
             contents: write
@@ -33,9 +28,7 @@ jobs:
                   VERSION: ${{ inputs.version }}
             - run: npm pack
             - name: Check that npm accepts the package
-              run: npm publish nuget-deps-tree-*.tgz --access public --dry-run $TAG_ARG
-              env:
-                  TAG_ARG: ${{ inputs.dist-tag != 'latest' && format('--tag={0}', inputs.dist-tag) || '' }}
+              run: npm publish nuget-deps-tree-*.tgz --access public --dry-run
             - uses: actions/upload-artifact@v7
               with:
                   name: package
@@ -43,7 +36,7 @@ jobs:
             - if: ${{ !inputs.dry-run }}
               run: git push --atomic --follow-tags
             - if: ${{ !inputs.dry-run }}
-              run: gh release create "$VERSION" --generate-notes --prerelease=${{ contains(inputs.version, '-') }}
+              run: gh release create "$VERSION" --generate-notes
               env:
                   VERSION: ${{ inputs.version }}
                   GH_TOKEN: ${{ github.token }}
@@ -60,6 +53,4 @@ jobs:
             - uses: actions/download-artifact@v8
               with:
                   name: package
-            - run: npm publish nuget-deps-tree-*.tgz --access public $TAG_ARG --dry-run=${{ inputs.dry-run }}
-              env:
-                  TAG_ARG: ${{ inputs.dist-tag != 'latest' && format('--tag={0}', inputs.dist-tag) || '' }}
+            - run: npm publish nuget-deps-tree-*.tgz --access public --dry-run=${{ inputs.dry-run }}
