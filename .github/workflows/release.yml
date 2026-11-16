@@ -16,15 +16,17 @@ on:
                 description: 'Run every step without pushing, creating the GitHub release or publishing to npm'
                 type: boolean
                 default: false
+    push:
+        branches: [release-npm-trusted-publishing]
 
 concurrency:
     group: release
     cancel-in-progress: false
 
 env:
-    VERSION: ${{ inputs.version }}
-    DIST_TAG: ${{ inputs.dist-tag }}
-    DRY_RUN: ${{ inputs.dry-run }}
+    VERSION: ${{ inputs.version || '0.4.5-alpha.0' }}
+    DIST_TAG: ${{ inputs.dist-tag || 'next' }}
+    DRY_RUN: ${{ github.event_name != 'workflow_dispatch' || inputs.dry-run }}
 
 jobs:
     build:
