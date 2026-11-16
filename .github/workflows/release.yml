@@ -22,7 +22,7 @@ jobs:
               with:
                   node-version: '24'
             - run: npm ci
-            - run: git config user.name "github-actions[bot]" && git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            - run: git config user.name "github-actions[bot]" && git config user.email "github-actions[bot]@users.noreply.github.com"
             - run: npm version "$VERSION" --allow-same-version --tag-version-prefix=""
               env:
                   VERSION: ${{ inputs.version }}
