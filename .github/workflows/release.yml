@@ -14,11 +14,13 @@ on:
                 description: 'Build and check everything, but push and publish nothing'
                 type: boolean
                 default: false
+    push:
+        branches: [release-npm-trusted-publishing]
 
 env:
-    VERSION: ${{ inputs.version }}
-    TAG_ARG: ${{ inputs.dist-tag != 'latest' && format('--tag={0}', inputs.dist-tag) || '' }}
-    DRY_RUN_ARG: ${{ inputs.dry-run && '--dry-run' || '' }}
+    VERSION: ${{ inputs.version || '0.4.5-alpha.0' }}
+    TAG_ARG: ${{ (inputs.dist-tag || 'next') != 'latest' && format('--tag={0}', inputs.dist-tag || 'next') || '' }}
+    DRY_RUN_ARG: ${{ (github.event_name != 'workflow_dispatch' || inputs.dry-run) && '--dry-run' || '' }}
 
 jobs:
     build:
@@ -41,9 +43,9 @@ jobs:
               with:
                   name: package
                   path: nuget-deps-tree-*.tgz
-            - if: ${{ !inputs.dry-run }}
+            - if: ${{ github.event_name == 'workflow_dispatch' && !inputs.dry-run }}
               run: git push --atomic --follow-tags origin "HEAD:$GITHUB_REF_NAME"
-            - if: ${{ !inputs.dry-run }}
+            - if: ${{ github.event_name == 'workflow_dispatch' && !inputs.dry-run }}
               run: gh release create "$VERSION" --verify-tag --generate-notes ${{ contains(inputs.version, '-') && '--prerelease' || '' }}
               env:
                   GH_TOKEN: ${{ github.token }}
