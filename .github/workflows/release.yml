@@ -36,9 +36,8 @@ jobs:
             - if: ${{ !inputs.dry-run }}
               run: git push --atomic --follow-tags
             - if: ${{ !inputs.dry-run }}
-              run: gh release create "$VERSION" --generate-notes
+              run: gh release create "$(git describe --tags --exact-match)" --generate-notes
               env:
-                  VERSION: ${{ inputs.version }}
                   GH_TOKEN: ${{ github.token }}
 
     publish:
