@@ -4,25 +4,17 @@ on:
     release:
         types: [published]
 jobs:
-    release:
+    build:
         runs-on: ubuntu-latest
         permissions:
             contents: write
-            id-token: write
         steps:
             - uses: actions/checkout@v1
 
-            - name: Start FastCI Optimization
-              uses: jfrog-fastci/fastci@main
-              with:
-                github_token: ${{ secrets.GITHUB_TOKEN }}
-                fastci_otel_token: ${{ secrets.FASTCI_TOKEN }}
-            
             - name: Setup NodeJS
               uses: actions/setup-node@v4
               with:
                 node-version: '24'
-                registry-url: 'https://registry.npmjs.org'
 
             - name: Install
               run: npm i
@@ -32,5 +24,30 @@ jobs:
               uses: ad-m/github-push-action@master
               with:
                   github_token: ${{ secrets.GITHUB_TOKEN }}
+            - name: Pack
+              run: npm pack
+            - name: Upload package
+              uses: actions/upload-artifact@v4
+              with:
+                  name: package
+                  path: nuget-deps-tree-*.tgz
+                  if-no-files-found: error
+
+    publish:
+        needs: build
+        runs-on: ubuntu-latest
+        permissions:
+            id-token: write
+        steps:
+            - name: Setup NodeJS
+              uses: actions/setup-node@v4
+              with:
+                node-version: '24'
+                registry-url: 'https://registry.npmjs.org'
+
+            - name: Download package
+              uses: actions/download-artifact@v4
+              with:
+                  name: package
             - name: Publish
-              run: npm publish --access public
+              run: npm publish nuget-deps-tree-*.tgz --access public
